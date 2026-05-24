@@ -119,9 +119,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     {stock.quantity.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
-                    {stock.currency === 'USD'
-                      ? `$${stock.avgCost.toFixed(2)}`
-                      : `₩${stock.avgCost.toLocaleString()}`}
+                    {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={`inline-flex items-center gap-0.5 font-semibold ${stock.changeRate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
