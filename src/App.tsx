@@ -10,14 +10,15 @@ import { StockTreemap } from './components/StockTreemap';
 import { StockTable } from './components/StockTable';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
-import type { Stock } from './types';
+import { BuyMoreModal } from './components/BuyMoreModal';
+import type { Stock, StockWithStats } from './types';
 import './index.css';
 
 export default function App() {
   const { rate, loading: rateLoading, error: rateError } = useExchangeRate();
   const {
     stocks, accounts,
-    addStock, deleteStock,
+    addStock, updateStock, deleteStock,
     addAccount, deleteAccount,
     totalValueKrw, totalGainLossKrw, totalCostKrw,
   } = usePortfolio(rate.usdToKrw);
@@ -26,6 +27,7 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [buyMoreTarget, setBuyMoreTarget] = useState<StockWithStats | null>(null);
 
   function handleSearchSelect(id: string) {
     const stock = stocks.find(s => s.id === id);
@@ -43,6 +45,14 @@ export default function App() {
 
   function handleAddAccount(name: string, broker: string) {
     addAccount(name, broker);
+  }
+
+  function handleBuyMore(id: string, addQty: number, addPrice: number) {
+    const stock = stocks.find(s => s.id === id);
+    if (!stock) return;
+    const newQty = stock.quantity + addQty;
+    const newAvgCost = (stock.quantity * stock.avgCost + addQty * addPrice) / newQty;
+    updateStock(id, { quantity: newQty, avgCost: newAvgCost });
   }
 
   function handleDeleteAccount(id: string) {
@@ -143,6 +153,7 @@ export default function App() {
               selectedAccountId={selectedAccountId}
               highlightId={highlightId}
               onDelete={deleteStock}
+              onBuyMore={setBuyMoreTarget}
             />
           </div>
         )}
@@ -160,6 +171,14 @@ export default function App() {
         <AddAccountModal
           onAdd={handleAddAccount}
           onClose={() => setShowAddAccountModal(false)}
+        />
+      )}
+
+      {buyMoreTarget && (
+        <BuyMoreModal
+          stock={buyMoreTarget}
+          onConfirm={handleBuyMore}
+          onClose={() => setBuyMoreTarget(null)}
         />
       )}
     </div>

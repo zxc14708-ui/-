@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 
 interface Props {
@@ -8,12 +8,13 @@ interface Props {
   selectedAccountId: string | null;
   highlightId: string | null;
   onDelete: (id: string) => void;
+  onBuyMore: (stock: StockWithStats) => void;
 }
 
 type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity';
 type Dir = 'asc' | 'desc';
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
 
@@ -104,11 +105,9 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <div className="text-white font-medium">{stock.nameKo}</div>
-                        <div className="text-gray-500 text-xs font-mono">{stock.ticker} · {stock.market}</div>
-                      </div>
+                    <div>
+                      <div className="text-white font-medium">{stock.nameKo}</div>
+                      <div className="text-gray-500 text-xs font-mono">{stock.ticker} · {stock.market}</div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
@@ -143,13 +142,22 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => onDelete(stock.id)}
-                      className="text-gray-600 hover:text-red-400 transition-colors p-1 rounded"
-                      title="삭제"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onBuyMore(stock)}
+                        className="text-gray-600 hover:text-blue-400 transition-colors p-1 rounded"
+                        title="추가 매수"
+                      >
+                        <PlusCircle size={13} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(stock.id)}
+                        className="text-gray-600 hover:text-red-400 transition-colors p-1 rounded"
+                        title="삭제"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
