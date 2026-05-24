@@ -58,8 +58,22 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   const us = stocks.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ');
   const CHUNK = 5;
 
+  // Try Naver first for Korean stocks; fall back to Yahoo if Naver fails
+  const naverFailed: Stock[] = [];
   for (let i = 0; i < korean.length; i += CHUNK) {
-    const settled = await Promise.allSettled(korean.slice(i, i + CHUNK).map(fetchNaver));
+    const chunk = korean.slice(i, i + CHUNK);
+    const settled = await Promise.allSettled(chunk.map(fetchNaver));
+    settled.forEach((r, idx) => {
+      if (r.status === 'fulfilled' && r.value)
+        result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });
+      else
+        naverFailed.push(chunk[idx]);
+    });
+  }
+
+  // Yahoo fallback for Korean stocks Naver couldn't serve
+  for (let i = 0; i < naverFailed.length; i += CHUNK) {
+    const settled = await Promise.allSettled(naverFailed.slice(i, i + CHUNK).map(fetchYahoo));
     settled.forEach(r => {
       if (r.status === 'fulfilled' && r.value)
         result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });

@@ -120,6 +120,18 @@ export function StockTreemap({ stocks, selectedAccountId }: Props) {
           className="absolute inset-0 w-full h-full rounded-lg overflow-hidden"
           style={{ display: 'block' }}
         >
+          <defs>
+            {cells.map(({ stock, x, y, w, h }) => {
+              const PAD = 3;
+              const cellW = Math.max(0, w - PAD * 2);
+              const cellH = Math.max(0, h - PAD * 2);
+              return (
+                <clipPath key={`clip-${stock.id}`} id={`clip-${stock.id}`}>
+                  <rect x={x + PAD} y={y + PAD} width={cellW} height={cellH} rx={4} />
+                </clipPath>
+              );
+            })}
+          </defs>
           {cells.map(({ stock, x, y, w, h }) => {
             const bg = changeColor(stock.changeRate);
             const PAD = 3;
@@ -180,19 +192,21 @@ export function StockTreemap({ stocks, selectedAccountId }: Props) {
                   strokeWidth={isHov ? 1.5 : 0}
                   style={{ transition: 'stroke 0.15s' }}
                 />
-                {lines.map((line, i) => (
-                  <text
-                    key={i}
-                    x={x + w / 2} y={lineYs[i]}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={`rgba(255,255,255,${line.alpha})`}
-                    fontSize={line.fs}
-                    fontWeight={line.fw}
-                  >
-                    {line.text}
-                  </text>
-                ))}
+                <g clipPath={`url(#clip-${stock.id})`}>
+                  {lines.map((line, i) => (
+                    <text
+                      key={i}
+                      x={x + w / 2} y={lineYs[i]}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill={`rgba(255,255,255,${line.alpha})`}
+                      fontSize={line.fs}
+                      fontWeight={line.fw}
+                    >
+                      {line.text}
+                    </text>
+                  ))}
+                </g>
               </g>
             );
           })}
