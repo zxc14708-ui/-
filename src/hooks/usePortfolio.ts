@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getPrevClose } from '../data/mockData';
 import type { Stock, Account, StockWithStats } from '../types';
+import type { LivePrice } from '../utils/yahooFinance';
 
 const ACCOUNT_COLORS = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -32,6 +33,8 @@ function persist(stocks: Stock[], accounts: Account[]) {
 export function usePortfolio(usdToKrw: number) {
   const [stocks, setStocks] = useState<Stock[]>(() => load(KEYS.stocks, []));
   const [accounts, setAccounts] = useState<Account[]>(() => load(KEYS.accounts, []));
+  // volatile live price cache — not persisted
+  const [liveData, setLiveData] = useState<Record<string, { price: number; prevClose: number }>>({});
 
   // 단일 persist 함수로 항상 최신 stocks+accounts를 함께 저장
   useEffect(() => {
@@ -40,17 +43,27 @@ export function usePortfolio(usdToKrw: number) {
 
   const stocksWithStats = useMemo<StockWithStats[]>(() =>
     stocks.map((s, i) => {
-      const prevClose = getPrevClose(s.currentPrice, i + 1);
-      const changeRate = ((s.currentPrice - prevClose) / prevClose) * 100;
-      const changeAmt = s.currentPrice - prevClose;
+      const live = liveData[s.id];
+      const currentPrice = live?.price ?? s.currentPrice;
+      const prevClose = live?.prevClose ?? getPrevClose(currentPrice, i + 1);
+      const changeRate = prevClose !== 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+      const changeAmt = currentPrice - prevClose;
       const multiplier = s.currency === 'USD' ? usdToKrw : 1;
       const costKrw = s.avgCost * s.quantity * multiplier;
-      const marketValueKrw = s.currentPrice * s.quantity * multiplier;
+      const marketValueKrw = currentPrice * s.quantity * multiplier;
       const gainLossKrw = marketValueKrw - costKrw;
       const gainLossPct = costKrw !== 0 ? (gainLossKrw / costKrw) * 100 : 0;
-      return { ...s, prevClose, changeRate, changeAmt, costKrw, marketValueKrw, gainLossKrw, gainLossPct };
+      return { ...s, currentPrice, prevClose, changeRate, changeAmt, costKrw, marketValueKrw, gainLossKrw, gainLossPct };
     }),
-  [stocks, usdToKrw]);
+  [stocks, liveData, usdToKrw]);
+
+  const bulkUpdateLiveData = useCallback((data: Map<string, LivePrice>) => {
+    setLiveData(prev => {
+      const next = { ...prev };
+      data.forEach((v, id) => { next[id] = v; });
+      return next;
+    });
+  }, []);
 
   const addStock = useCallback((stock: Stock) => {
     setStocks(prev => [...prev, stock]);
@@ -94,12 +107,14 @@ export function usePortfolio(usdToKrw: number) {
 
   return {
     stocks: stocksWithStats,
+    rawStocks: stocks,
     accounts,
     addStock,
     updateStock,
     deleteStock,
     addAccount,
     deleteAccount,
+    bulkUpdateLiveData,
     totalValueKrw,
     totalGainLossKrw,
     totalCostKrw,

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useExchangeRate } from './hooks/useExchangeRate';
 import { usePortfolio } from './hooks/usePortfolio';
+import { usePriceRefresher } from './hooks/usePriceRefresher';
 import { ExchangeRateBar } from './components/ExchangeRateBar';
 import { SummaryCards } from './components/SummaryCards';
 import { AccountTabs } from './components/AccountTabs';
@@ -18,11 +19,15 @@ import './index.css';
 export default function App() {
   const { rate, loading: rateLoading, error: rateError } = useExchangeRate();
   const {
-    stocks, accounts,
+    stocks, rawStocks, accounts,
     addStock, updateStock, deleteStock,
     addAccount, deleteAccount,
+    bulkUpdateLiveData,
     totalValueKrw, totalGainLossKrw, totalCostKrw,
   } = usePortfolio(rate.usdToKrw);
+
+  const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
+    usePriceRefresher(rawStocks, bulkUpdateLiveData);
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -43,6 +48,7 @@ export default function App() {
   function handleAddStock(stock: Stock) {
     addStock(stock);
     setSelectedAccountId(stock.accountId);
+    setTimeout(refreshPrices, 200);
   }
 
   function handleBuyMore(id: string, addQty: number, addPrice: number) {
@@ -139,6 +145,29 @@ export default function App() {
                 )}
               </h3>
               <div className="flex items-center gap-3">
+                {/* 가격 업데이트 상태 */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  {isRefreshing ? (
+                    <span className="text-blue-400 flex items-center gap-1">
+                      <RefreshCw size={11} className="animate-spin" />
+                      업데이트 중
+                    </span>
+                  ) : priceError ? (
+                    <span className="text-red-400 flex items-center gap-1" title={priceError}>
+                      가격 조회 실패
+                      <button onClick={refreshPrices} className="hover:text-red-300 transition-colors">
+                        <RefreshCw size={11} />
+                      </button>
+                    </span>
+                  ) : lastUpdated ? (
+                    <span className="text-gray-600 flex items-center gap-1">
+                      {lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 기준
+                      <button onClick={refreshPrices} className="hover:text-gray-400 transition-colors">
+                        <RefreshCw size={11} />
+                      </button>
+                    </span>
+                  ) : null}
+                </div>
                 <span className="text-gray-500 text-xs">
                   {selectedAccountId
                     ? stocks.filter(s => s.accountId === selectedAccountId).length
