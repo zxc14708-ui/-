@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #0f1117;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1d2e;
+}
+::-webkit-scrollbar-thumb {
+  background: #3d4166;
+  border-radius: 3px;
+}
+
+/* treemap cell transition */
+.treemap-cell {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.treemap-cell:hover {
+  opacity: 0.85;
+  transform: scale(1.01);
+  z-index: 10;
+}
