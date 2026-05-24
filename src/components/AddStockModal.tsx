@@ -209,10 +209,10 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
 
           {/* 수량 / 단가 / 현재가 */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="수량 *" value={quantity} onChange={setQuantity} placeholder="0" type="number" />
+            <Field label="수량 *" value={quantity} onChange={setQuantity} placeholder="0" type="number" step="0.0000000001" />
             <Field
               label={`평균단가 * (${isUSD ? '$' : '₩'})`}
-              value={avgCost} onChange={setAvgCost} placeholder="0" type="number" step="0.001"
+              value={avgCost} onChange={setAvgCost} placeholder="0" type="number" step="0.0000000001"
             />
           </div>
 
