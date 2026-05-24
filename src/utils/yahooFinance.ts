@@ -124,3 +124,34 @@ export async function searchYahooFinance(query: string): Promise<StockEntry[]> {
     return [];
   }
 }
+
+export function isKoreanQuery(query: string): boolean {
+  return /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(query);
+}
+
+// 네이버 금융 자동완성 API — 한글 이름 검색용
+export async function searchNaverFinance(query: string): Promise<StockEntry[]> {
+  const url = proxy(
+    `https://ac.finance.naver.com/ac?q=${encodeURIComponent(query)}&q_enc=UTF-8&st=111&r_format=json&r_enc=UTF-8&r_lt=111`
+  );
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = await res.json();
+    // items[0]: 종목 목록, 각 항목 = [한글명, 종목코드, '', 타입, 시장, '']
+    // 타입: '1'=주식, '2'=지수(제외), '3'=선물/옵션(제외), '4'=ETF 등
+    const items: string[][] = json.items?.[0] ?? [];
+    return items
+      .filter(item => item[3] !== '2') // 지수 제외
+      .map(item => {
+        const nameKo = item[0] ?? '';
+        const ticker = item[1] ?? '';
+        const marketStr = (item[4] ?? '').toUpperCase();
+        const market: Stock['market'] = marketStr.includes('KOSDAQ') ? 'KOSDAQ' : 'KRX';
+        return { ticker, nameKo, nameEn: nameKo, market, currency: 'KRW' as const };
+      })
+      .filter(item => item.ticker);
+  } catch {
+    return [];
+  }
+}

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Search, ChevronDown, Loader2 } from 'lucide-react';
 import type { Stock, Account } from '../types';
 import { searchStocks } from '../data/stockDB';
-import { searchYahooFinance, type StockEntry } from '../utils/yahooFinance';
+import { searchYahooFinance, searchNaverFinance, isKoreanQuery, type StockEntry } from '../utils/yahooFinance';
 
 interface Props {
   accounts: Account[];
@@ -98,7 +98,9 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
     setIsLiveSearching(true);
     liveSearchTimer.current = setTimeout(async () => {
       try {
-        const liveResults = await searchYahooFinance(v);
+        const liveResults = isKoreanQuery(v)
+          ? await searchNaverFinance(v)
+          : await searchYahooFinance(v);
         const localTickers = new Set(localResults.map(r => r.ticker.toLowerCase()));
         const extras = liveResults.filter(r => !localTickers.has(r.ticker.toLowerCase()));
         setSuggestions([...localResults, ...extras].slice(0, 15));
