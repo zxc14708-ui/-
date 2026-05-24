@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0f1117"/>
+  <!-- Bar chart bars -->
+  <rect x="72" y="300" width="72" height="148" rx="8" fill="#6366f1" opacity="0.85"/>
+  <rect x="168" y="220" width="72" height="228" rx="8" fill="#8b5cf6" opacity="0.85"/>
+  <rect x="264" y="160" width="72" height="288" rx="8" fill="#6366f1"/>
+  <rect x="360" y="96" width="72" height="352" rx="8" fill="#22c55e"/>
+  <!-- Trend line -->
+  <polyline points="108,272 204,192 300,136 396,72" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Trend line dots -->
+  <circle cx="108" cy="272" r="12" fill="#10b981"/>
+  <circle cx="204" cy="192" r="12" fill="#10b981"/>
+  <circle cx="300" cy="136" r="12" fill="#10b981"/>
+  <circle cx="396" cy="72" r="12" fill="#10b981"/>
+  <!-- Bottom line -->
+  <rect x="56" y="460" width="400" height="10" rx="5" fill="#2e3151"/>
+</svg>

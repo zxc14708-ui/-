@@ -1,0 +1,26 @@
+{
+  "name": "자산관리 포트폴리오",
+  "short_name": "포트폴리오",
+  "description": "주식 포트폴리오 자산관리 앱",
+  "start_url": "/-/",
+  "scope": "/-/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/-/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/-/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
