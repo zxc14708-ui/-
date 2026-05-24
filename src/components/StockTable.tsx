@@ -27,6 +27,8 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     ? stocks.filter(s => s.accountId === selectedAccountId)
     : stocks;
 
+  const totalFilteredValue = filtered.reduce((sum, s) => sum + s.marketValueKrw, 0);
+
   const sorted = [...filtered].sort((a, b) => {
     const av = a[sortKey] as number | string;
     const bv = b[sortKey] as number | string;
@@ -80,6 +82,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   평가금액 <SortIcon k="marketValueKrw" />
                 </button>
               </th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">비중</th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
                 <button onClick={() => toggleSort('gainLossPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   평가손익 <SortIcon k="gainLossPct" />
@@ -135,6 +138,23 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
                     {fmtVal(stock.marketValueKrw)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {totalFilteredValue > 0 ? (
+                      <>
+                        <div className="text-gray-300 text-sm">
+                          {((stock.marketValueKrw / totalFilteredValue) * 100).toFixed(1)}%
+                        </div>
+                        <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-blue-500 opacity-70"
+                            style={{ width: `${Math.min((stock.marketValueKrw / totalFilteredValue) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-600">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
