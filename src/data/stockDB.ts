@@ -408,7 +408,7 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: '379810', nameKo: 'KODEX 미국나스닥100', nameEn: 'KODEX US NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '367380', nameKo: 'KODEX 미국나스닥100TR', nameEn: 'KODEX US NASDAQ100 TR ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '304660', nameKo: 'KODEX 미국채울트라30년선물(H)', nameEn: 'KODEX US Treasury Ultra 30Y ETF', market: 'KRX', currency: 'KRW' },
-  { ticker: '385560', nameKo: 'KODEX 글로벌전기차&배터리', nameEn: 'KODEX Global EV & Battery ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '305720', nameKo: 'KODEX 글로벌전기차&배터리', nameEn: 'KODEX Global EV & Battery ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '441680', nameKo: 'KODEX 인도Nifty50', nameEn: 'KODEX India Nifty50 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '449450', nameKo: 'KODEX 미국반도체MV', nameEn: 'KODEX US Semiconductor MV ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '468380', nameKo: 'KODEX 미국AI테크TOP10', nameEn: 'KODEX US AI Tech TOP10 ETF', market: 'KRX', currency: 'KRW' },
@@ -419,7 +419,7 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: '143850', nameKo: 'TIGER 미국S&P500', nameEn: 'TIGER US S&P500 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '360750', nameKo: 'TIGER 미국S&P500TR', nameEn: 'TIGER US S&P500 TR ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '381170', nameKo: 'TIGER 미국나스닥100TR', nameEn: 'TIGER US NASDAQ100 TR ETF', market: 'KRX', currency: 'KRW' },
-  { ticker: '305720', nameKo: 'TIGER 2차전지테마', nameEn: 'TIGER Secondary Battery Theme ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '364980', nameKo: 'TIGER 2차전지테마', nameEn: 'TIGER Secondary Battery Theme ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '139270', nameKo: 'TIGER 200 IT', nameEn: 'TIGER 200 IT ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '266160', nameKo: 'TIGER 코스피고배당', nameEn: 'TIGER KOSPI High Dividend ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '195930', nameKo: 'TIGER 해외선진국MSCI World', nameEn: 'TIGER MSCI World ETF', market: 'KRX', currency: 'KRW' },
@@ -448,6 +448,10 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: '140570', nameKo: 'ARIRANG 200', nameEn: 'ARIRANG 200 ETF', market: 'KRX', currency: 'KRW' },
   // 국내 ETF — KINDEX (한국투자증권)
   { ticker: '278420', nameKo: 'KINDEX 미국S&P500', nameEn: 'KINDEX US S&P500 ETF', market: 'KRX', currency: 'KRW' },
+  // 국내 ETF — RISE (KB자산운용)
+  { ticker: '385560', nameKo: 'RISE KIS국고채30년Enhanced', nameEn: 'RISE KIS Korea Treasury 30Y Enhanced ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '396520', nameKo: 'RISE 미국S&P500', nameEn: 'RISE US S&P500 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '458730', nameKo: 'RISE 미국나스닥100', nameEn: 'RISE US NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
   // 미국 ETF — 지수
   { ticker: 'SPY', nameKo: 'SPDR S&P500 ETF', nameEn: 'SPDR S&P 500 ETF Trust', market: 'NYSE', currency: 'USD' },
   { ticker: 'QQQ', nameKo: '인베스코 나스닥100 ETF', nameEn: 'Invesco QQQ Trust', market: 'NASDAQ', currency: 'USD' },
