@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Search, ChevronDown } from 'lucide-react';
 import type { Stock, Account } from '../types';
+import { searchStocks } from '../data/stockDB';
 
 interface Props {
   accounts: Account[];
@@ -9,42 +10,73 @@ interface Props {
 }
 
 export function AddStockModal({ accounts, onAdd, onClose }: Props) {
-  const [form, setForm] = useState({
-    ticker: '',
-    nameKo: '',
-    nameEn: '',
-    market: 'KRX' as Stock['market'],
-    accountId: accounts[0]?.id ?? '',
-    quantity: '',
-    avgCost: '',
-    currentPrice: '',
-    currency: 'KRW' as Stock['currency'],
-    sector: '',
-  });
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<ReturnType<typeof searchStocks>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selected, setSelected] = useState<ReturnType<typeof searchStocks>[0] | null>(null);
 
-  function set(k: string, v: string) {
-    setForm(f => ({ ...f, [k]: v }));
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [quantity, setQuantity] = useState('');
+  const [avgCost, setAvgCost] = useState('');
+  const [currentPrice, setCurrentPrice] = useState('');
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleQueryChange(v: string) {
+    setQuery(v);
+    setSelected(null);
+    const results = searchStocks(v);
+    setSuggestions(results);
+    setShowSuggestions(true);
   }
+
+  function handleSelect(item: ReturnType<typeof searchStocks>[0]) {
+    setSelected(item);
+    setQuery(`${item.ticker} · ${item.nameKo}`);
+    setShowSuggestions(false);
+  }
+
+  function handleClear() {
+    setSelected(null);
+    setQuery('');
+    setSuggestions([]);
+    inputRef.current?.focus();
+  }
+
+  const currency = selected?.currency ?? 'KRW';
+  const isUSD = currency === 'USD';
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.ticker || !form.nameKo || !form.quantity || !form.avgCost || !form.currentPrice) return;
+    if (!selected || !quantity || !avgCost || !currentPrice || !accountId) return;
     const stock: Stock = {
       id: 's' + Date.now(),
-      ticker: form.ticker.toUpperCase(),
-      nameKo: form.nameKo,
-      nameEn: form.nameEn || form.nameKo,
-      market: form.market,
-      accountId: form.accountId,
-      quantity: Number(form.quantity),
-      avgCost: Number(form.avgCost),
-      currentPrice: Number(form.currentPrice),
-      currency: form.currency,
-      sector: form.sector || undefined,
+      ticker: selected.ticker,
+      nameKo: selected.nameKo,
+      nameEn: selected.nameEn,
+      market: selected.market,
+      accountId,
+      quantity: Number(quantity),
+      avgCost: Number(avgCost),
+      currentPrice: Number(currentPrice),
+      currency: selected.currency,
     };
     onAdd(stock);
     onClose();
   }
+
+  const canSubmit = selected && quantity && avgCost && currentPrice && accountId;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -56,53 +88,114 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
           </button>
         </div>
 
-        <form onSubmit={submit} className="p-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="종목코드 *" value={form.ticker} onChange={v => set('ticker', v)} placeholder="e.g. 005930" />
-            <div>
-              <label className="text-gray-500 text-xs mb-1 block">시장 *</label>
+        <form onSubmit={submit} className="p-5 space-y-4">
+          {/* 종목 검색 */}
+          <div>
+            <label className="text-gray-500 text-xs mb-1.5 block">종목 검색 *</label>
+            <div ref={dropdownRef} className="relative">
+              <div className={`flex items-center gap-2 bg-[#0f1117] border rounded-lg px-3 py-2 transition-colors ${
+                showSuggestions ? 'border-blue-500' : 'border-[#2e3151]'
+              }`}>
+                <Search size={14} className="text-gray-500 flex-shrink-0" />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={e => handleQueryChange(e.target.value)}
+                  onFocus={() => query && setShowSuggestions(true)}
+                  placeholder="종목코드, 한글명, 영문명으로 검색"
+                  className="bg-transparent text-white text-sm outline-none flex-1 placeholder:text-gray-600"
+                  autoFocus
+                />
+                {query && (
+                  <button type="button" onClick={handleClear} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* 자동완성 드롭다운 */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full mt-1 w-full bg-[#0f1117] border border-[#2e3151] rounded-xl shadow-2xl z-50 overflow-hidden">
+                  {suggestions.map((item, idx) => (
+                    <button
+                      key={item.ticker}
+                      type="button"
+                      onClick={() => handleSelect(item)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#1a1d2e] transition-colors ${
+                        idx > 0 ? 'border-t border-[#1a1d2e]' : ''
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-medium">{item.nameKo}</span>
+                          <span className="text-gray-500 text-xs font-mono">{item.ticker}</span>
+                        </div>
+                        <div className="text-gray-600 text-xs">{item.nameEn} · {item.market}</div>
+                      </div>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                        item.currency === 'USD' ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'
+                      }`}>
+                        {item.currency}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showSuggestions && query && suggestions.length === 0 && (
+                <div className="absolute top-full mt-1 w-full bg-[#0f1117] border border-[#2e3151] rounded-xl shadow-2xl z-50 px-4 py-3 text-gray-500 text-sm">
+                  검색 결과가 없습니다
+                </div>
+              )}
+            </div>
+
+            {/* 선택된 종목 정보 */}
+            {selected && (
+              <div className="mt-2 px-3 py-2 bg-blue-950/30 border border-blue-800/40 rounded-lg flex items-center justify-between">
+                <div>
+                  <span className="text-white text-sm font-medium">{selected.nameKo}</span>
+                  <span className="text-gray-400 text-xs ml-2">{selected.ticker} · {selected.market}</span>
+                </div>
+                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                  isUSD ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'
+                }`}>
+                  {currency}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* 계좌 선택 */}
+          <div>
+            <label className="text-gray-500 text-xs mb-1.5 block">계좌 *</label>
+            <div className="relative">
               <select
-                value={form.market}
-                onChange={e => {
-                  const m = e.target.value as Stock['market'];
-                  set('market', m);
-                  set('currency', m === 'KRX' || m === 'KOSDAQ' ? 'KRW' : 'USD');
-                }}
-                className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500"
+                value={accountId}
+                onChange={e => setAccountId(e.target.value)}
+                className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 appearance-none"
               >
-                <option value="KRX">KRX</option>
-                <option value="KOSDAQ">KOSDAQ</option>
-                <option value="NYSE">NYSE</option>
-                <option value="NASDAQ">NASDAQ</option>
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
               </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
           </div>
 
-          <Field label="한글명 *" value={form.nameKo} onChange={v => set('nameKo', v)} placeholder="삼성전자" />
-          <Field label="영문명" value={form.nameEn} onChange={v => set('nameEn', v)} placeholder="Samsung Electronics" />
-
-          <div>
-            <label className="text-gray-500 text-xs mb-1 block">계좌 *</label>
-            <select
-              value={form.accountId}
-              onChange={e => set('accountId', e.target.value)}
-              className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500"
-            >
-              {accounts.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-
+          {/* 수량 / 단가 / 현재가 */}
           <div className="grid grid-cols-3 gap-3">
-            <Field label="수량 *" value={form.quantity} onChange={v => set('quantity', v)} placeholder="0" type="number" />
-            <Field label="평균단가 *" value={form.avgCost} onChange={v => set('avgCost', v)} placeholder="0" type="number" />
-            <Field label="현재가 *" value={form.currentPrice} onChange={v => set('currentPrice', v)} placeholder="0" type="number" />
+            <Field label="수량 *" value={quantity} onChange={setQuantity} placeholder="0" type="number" />
+            <Field
+              label={`평균단가 * (${isUSD ? '$' : '₩'})`}
+              value={avgCost} onChange={setAvgCost} placeholder="0" type="number"
+            />
+            <Field
+              label={`현재가 * (${isUSD ? '$' : '₩'})`}
+              value={currentPrice} onChange={setCurrentPrice} placeholder="0" type="number"
+            />
           </div>
 
-          <Field label="섹터" value={form.sector} onChange={v => set('sector', v)} placeholder="반도체, IT, ..." />
-
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
@@ -112,7 +205,8 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white text-sm font-semibold transition-colors"
+              disabled={!canSubmit}
+              className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-white text-sm font-semibold transition-colors"
             >
               추가
             </button>
@@ -129,12 +223,13 @@ function Field({ label, value, onChange, placeholder, type = 'text' }: {
 }) {
   return (
     <div>
-      <label className="text-gray-500 text-xs mb-1 block">{label}</label>
+      <label className="text-gray-500 text-xs mb-1.5 block leading-tight">{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
+        min={type === 'number' ? '0' : undefined}
         className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
       />
     </div>
