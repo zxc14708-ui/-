@@ -22,36 +22,49 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
   const [accountId, setAccountId] = useState(
     defaultAccountId ?? accounts[0]?.id ?? ''
   );
+  const [inputMode, setInputMode] = useState<'amount' | 'price'>('amount');
   const [quantity, setQuantity] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
+  const [totalAmount, setTotalAmount] = useState(''); // raw number string (no commas)
   const [avgCost, setAvgCost] = useState('');
-  const [avgCostSource, setAvgCostSource] = useState<'manual' | 'calculated'>('manual');
 
-  function calcAvg(qty: string, amount: string) {
+  function formatAmount(raw: string): string {
+    if (!raw) return '';
+    const parts = raw.split('.');
+    const intPart = parseInt(parts[0] || '0', 10);
+    if (isNaN(intPart)) return raw;
+    const formatted = intPart.toLocaleString('ko-KR');
+    return parts.length > 1 ? `${formatted}.${parts[1]}` : formatted;
+  }
+
+  function calcAvg(qty: string, amount: string): string {
     const q = Number(qty), a = Number(amount);
     if (!q || !a || !isFinite(a / q)) return '';
     return String(parseFloat((a / q).toFixed(10)));
   }
 
+  function handleModeChange(mode: 'amount' | 'price') {
+    setInputMode(mode);
+    setTotalAmount('');
+    setAvgCost('');
+  }
+
   function handleQuantityChange(v: string) {
     setQuantity(v);
-    if (totalAmount) {
+    if (inputMode === 'amount' && totalAmount) {
       const calc = calcAvg(v, totalAmount);
-      if (calc) { setAvgCost(calc); setAvgCostSource('calculated'); }
+      if (calc) setAvgCost(calc);
     }
   }
 
   function handleTotalAmountChange(v: string) {
-    setTotalAmount(v);
-    const calc = calcAvg(quantity, v);
-    if (calc) { setAvgCost(calc); setAvgCostSource('calculated'); }
-    else if (!v) { if (avgCostSource === 'calculated') setAvgCost(''); }
+    const raw = v.replace(/,/g, '').replace(/[^0-9.]/g, '');
+    setTotalAmount(raw);
+    const calc = calcAvg(quantity, raw);
+    setAvgCost(calc);
   }
 
   function handleAvgCostChange(v: string) {
     setAvgCost(v);
-    setAvgCostSource('manual');
-    setTotalAmount('');
   }
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +121,6 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
     setQuantity('');
     setTotalAmount('');
     setAvgCost('');
-    setAvgCostSource('manual');
     inputRef.current?.focus();
   }
 
@@ -243,40 +255,68 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
             </div>
           </div>
 
-          {/* 수량 / 매수금액 */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="보유수량 *"
-              value={quantity} onChange={handleQuantityChange}
-              placeholder="0" type="number" step="0.0000000001"
-            />
-            <Field
-              label={`매수금액 (${isUSD ? '$' : '₩'})`}
-              value={totalAmount} onChange={handleTotalAmountChange}
-              placeholder="0" type="number" step="0.0000000001"
-            />
+          {/* 입력 방식 토글 */}
+          <div>
+            <label className="text-gray-500 text-xs mb-1.5 block">입력 방식</label>
+            <div className="flex rounded-lg border border-[#2e3151] overflow-hidden text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => handleModeChange('amount')}
+                className={`flex-1 py-2 transition-colors ${inputMode === 'amount' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                매수금액으로 계산
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('price')}
+                className={`flex-1 py-2 transition-colors border-l border-[#2e3151] ${inputMode === 'price' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                단가 직접 입력
+              </button>
+            </div>
           </div>
 
-          {/* 평균단가 */}
-          <div>
-            <label className="text-gray-500 text-xs mb-1.5 block">
-              평균단가 * ({isUSD ? '$' : '₩'})
-              {avgCostSource === 'calculated' && (
-                <span className="ml-1.5 text-blue-400">· 자동계산됨</span>
-              )}
-            </label>
-            <input
-              type="number"
-              value={avgCost}
-              onChange={e => handleAvgCostChange(e.target.value)}
-              placeholder="직접 입력하거나 매수금액÷수량으로 자동 계산"
-              min="0"
-              step="0.0000000001"
-              className={`w-full bg-[#0f1117] border text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700 transition-colors ${
-                avgCostSource === 'calculated' ? 'border-blue-500/50' : 'border-[#2e3151]'
-              }`}
+          {/* 보유수량 */}
+          <Field
+            label="보유수량 *"
+            value={quantity} onChange={handleQuantityChange}
+            placeholder="0" type="number" step="0.0000000001"
+          />
+
+          {inputMode === 'amount' ? (<>
+            {/* 매수금액 (회계 단위 포맷) */}
+            <div>
+              <label className="text-gray-500 text-xs mb-1.5 block">
+                매수금액 ({isUSD ? '$' : '₩'})
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={formatAmount(totalAmount)}
+                onChange={e => handleTotalAmountChange(e.target.value)}
+                placeholder="0"
+                className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
+              />
+            </div>
+
+            {/* 평균단가 (자동계산, 읽기전용) */}
+            <div>
+              <label className="text-gray-500 text-xs mb-1.5 block flex items-center gap-1.5">
+                평균단가 * ({isUSD ? '$' : '₩'})
+                {avgCost && <span className="text-blue-400">· 자동계산됨</span>}
+              </label>
+              <div className={`w-full bg-[#0f1117] border rounded-lg px-3 py-2 text-sm min-h-[38px] ${avgCost ? 'border-blue-500/40 text-white' : 'border-[#2e3151] text-gray-600'}`}>
+                {avgCost || '매수금액과 수량을 입력하면 자동 계산됩니다'}
+              </div>
+            </div>
+          </>) : (
+            /* 단가 직접 입력 */
+            <Field
+              label={`평균단가 * (${isUSD ? '$' : '₩'})`}
+              value={avgCost} onChange={handleAvgCostChange}
+              placeholder="0" type="number" step="0.0000000001"
             />
-          </div>
+          )}
 
           <div className="flex gap-3 pt-1">
             <button
