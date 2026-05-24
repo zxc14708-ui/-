@@ -15,7 +15,7 @@ interface Props {
   usdToKrw: number;
 }
 
-type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity';
+type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity' | 'weightPct';
 type Dir = 'asc' | 'desc';
 
 export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
@@ -30,8 +30,8 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
   const totalFilteredValue = filtered.reduce((sum, s) => sum + s.marketValueKrw, 0);
 
   const sorted = [...filtered].sort((a, b) => {
-    const av = a[sortKey] as number | string;
-    const bv = b[sortKey] as number | string;
+    const av = sortKey === 'weightPct' ? a.marketValueKrw : a[sortKey] as number | string;
+    const bv = sortKey === 'weightPct' ? b.marketValueKrw : b[sortKey] as number | string;
     const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number);
     return sortDir === 'asc' ? cmp : -cmp;
   });
@@ -82,7 +82,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   평가금액 <SortIcon k="marketValueKrw" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">비중</th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+                <button onClick={() => toggleSort('weightPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
+                  비중 <SortIcon k="weightPct" />
+                </button>
+              </th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
                 <button onClick={() => toggleSort('gainLossPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   평가손익 <SortIcon k="gainLossPct" />
