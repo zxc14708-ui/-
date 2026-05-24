@@ -11,6 +11,7 @@ import { StockTable } from './components/StockTable';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
 import { BuyMoreModal } from './components/BuyMoreModal';
+import { EditPriceModal } from './components/EditPriceModal';
 import type { DisplayCurrency } from './utils/currency';
 import type { Stock, StockWithStats } from './types';
 import './index.css';
@@ -29,6 +30,7 @@ export default function App() {
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [buyMoreTarget, setBuyMoreTarget] = useState<StockWithStats | null>(null);
+  const [editPriceTarget, setEditPriceTarget] = useState<StockWithStats | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>('KRW');
 
   function handleSearchSelect(id: string) {
@@ -43,6 +45,10 @@ export default function App() {
   function handleAddStock(stock: Stock) {
     addStock(stock);
     setSelectedAccountId(stock.accountId);
+  }
+
+  function handleEditPrice(id: string, newPrice: number) {
+    updateStock(id, { currentPrice: newPrice });
   }
 
   function handleBuyMore(id: string, addQty: number, addPrice: number) {
@@ -161,6 +167,7 @@ export default function App() {
               highlightId={highlightId}
               onDelete={deleteStock}
               onBuyMore={setBuyMoreTarget}
+              onEditPrice={setEditPriceTarget}
               displayCurrency={displayCurrency}
               usdToKrw={rate.usdToKrw}
             />
@@ -188,6 +195,14 @@ export default function App() {
           stock={buyMoreTarget}
           onConfirm={handleBuyMore}
           onClose={() => setBuyMoreTarget(null)}
+        />
+      )}
+
+      {editPriceTarget && (
+        <EditPriceModal
+          stock={editPriceTarget}
+          onConfirm={handleEditPrice}
+          onClose={() => setEditPriceTarget(null)}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, Pencil } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -11,6 +11,7 @@ interface Props {
   highlightId: string | null;
   onDelete: (id: string) => void;
   onBuyMore: (stock: StockWithStats) => void;
+  onEditPrice: (stock: StockWithStats) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
@@ -18,7 +19,7 @@ interface Props {
 type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity';
 type Dir = 'asc' | 'desc';
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEditPrice, displayCurrency, usdToKrw }: Props) {
   const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
@@ -69,6 +70,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                 </button>
               </th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">수량</th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">현재가</th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">평균금액</th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
                 <button onClick={() => toggleSort('changeRate')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
@@ -117,6 +119,18 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   </td>
                   <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
                     {stock.quantity.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    <button
+                      onClick={() => onEditPrice(stock)}
+                      className="text-white hover:text-blue-300 transition-colors tabular-nums group flex items-center gap-1 ml-auto"
+                      title="현재가 수정"
+                    >
+                      {stock.currency === 'USD'
+                        ? `$${stock.currentPrice.toFixed(2)}`
+                        : `₩${stock.currentPrice.toLocaleString()}`}
+                      <Pencil size={10} className="text-gray-600 group-hover:text-blue-400 flex-shrink-0" />
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
                     {stock.currency === 'USD'
