@@ -18,7 +18,6 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [quantity, setQuantity] = useState('');
   const [avgCost, setAvgCost] = useState('');
-  const [currentPrice, setCurrentPrice] = useState('');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -59,7 +58,7 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected || !quantity || !avgCost || !currentPrice || !accountId) return;
+    if (!selected || !quantity || !avgCost || !accountId) return;
     const stock: Stock = {
       id: 's' + Date.now(),
       ticker: selected.ticker,
@@ -69,14 +68,14 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
       accountId,
       quantity: Number(quantity),
       avgCost: Number(avgCost),
-      currentPrice: Number(currentPrice),
+      currentPrice: Number(avgCost),
       currency: selected.currency,
     };
     onAdd(stock);
     onClose();
   }
 
-  const canSubmit = selected && quantity && avgCost && currentPrice && accountId;
+  const canSubmit = selected && quantity && avgCost && accountId;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -183,15 +182,11 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
           </div>
 
           {/* 수량 / 단가 / 현재가 */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="수량 *" value={quantity} onChange={setQuantity} placeholder="0" type="number" />
             <Field
               label={`평균단가 * (${isUSD ? '$' : '₩'})`}
               value={avgCost} onChange={setAvgCost} placeholder="0" type="number"
-            />
-            <Field
-              label={`현재가 * (${isUSD ? '$' : '₩'})`}
-              value={currentPrice} onChange={setCurrentPrice} placeholder="0" type="number"
             />
           </div>
 
