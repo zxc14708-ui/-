@@ -150,7 +150,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
-                    {fmtVal(stock.marketValueKrw)}
+                    {fmtVal(stock.costKrw)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>

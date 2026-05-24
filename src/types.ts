@@ -26,9 +26,10 @@ export interface ExchangeRate {
 
 export interface StockWithStats extends Stock {
   prevClose: number;
-  changeRate: number;     // % change from prev close
+  changeRate: number;
   changeAmt: number;
-  marketValueKrw: number; // 평가금액 (원화)
+  costKrw: number;        // 매수금액 = avgCost × 수량 (원화)
+  marketValueKrw: number; // 시장가치 = currentPrice × 수량 (원화)
   gainLossKrw: number;    // 평가손익 (원화)
   gainLossPct: number;
 }

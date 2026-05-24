@@ -44,11 +44,11 @@ export function usePortfolio(usdToKrw: number) {
       const changeRate = ((s.currentPrice - prevClose) / prevClose) * 100;
       const changeAmt = s.currentPrice - prevClose;
       const multiplier = s.currency === 'USD' ? usdToKrw : 1;
-      const marketValueKrw = s.currentPrice * s.quantity * multiplier;
       const costKrw = s.avgCost * s.quantity * multiplier;
+      const marketValueKrw = s.currentPrice * s.quantity * multiplier;
       const gainLossKrw = marketValueKrw - costKrw;
       const gainLossPct = costKrw !== 0 ? (gainLossKrw / costKrw) * 100 : 0;
-      return { ...s, prevClose, changeRate, changeAmt, marketValueKrw, gainLossKrw, gainLossPct };
+      return { ...s, prevClose, changeRate, changeAmt, costKrw, marketValueKrw, gainLossKrw, gainLossPct };
     }),
   [stocks, usdToKrw]);
 
