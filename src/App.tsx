@@ -17,7 +17,20 @@ import type { Stock, StockWithStats } from './types';
 import './index.css';
 
 export default function App() {
-  const { rate, loading: rateLoading, error: rateError } = useExchangeRate();
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState<number | null>(() => {
+    const saved = localStorage.getItem('portfolio_refresh_interval');
+    if (saved === 'null') return null;
+    const n = Number(saved);
+    return isNaN(n) || n <= 0 ? 5 * 60 * 1000 : n;
+  });
+
+  function handleSetInterval(ms: number | null) {
+    setRefreshIntervalMs(ms);
+    localStorage.setItem('portfolio_refresh_interval', ms === null ? 'null' : String(ms));
+  }
+
+  const { rate, loading: rateLoading, isRefreshing: rateRefreshing, error: rateError, refresh: refreshRate } =
+    useExchangeRate(refreshIntervalMs);
   const {
     stocks, rawStocks, accounts,
     addStock, updateStock, deleteStock,
@@ -27,7 +40,7 @@ export default function App() {
   } = usePortfolio(rate.usdToKrw);
 
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
-    usePriceRefresher(rawStocks, bulkUpdateLiveData);
+    usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -69,9 +82,13 @@ export default function App() {
       <ExchangeRateBar
         rate={rate}
         loading={rateLoading}
+        rateRefreshing={rateRefreshing}
         error={rateError}
         displayCurrency={displayCurrency}
         onToggle={() => setDisplayCurrency(c => c === 'KRW' ? 'USD' : 'KRW')}
+        refreshIntervalMs={refreshIntervalMs}
+        onSetInterval={handleSetInterval}
+        onRefreshRate={refreshRate}
       />
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">

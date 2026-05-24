@@ -2,11 +2,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Stock } from '../types';
 import { fetchLivePrices, type LivePrice } from '../utils/yahooFinance';
 
-const INTERVAL_MS = 5 * 60 * 1000;
-
 export function usePriceRefresher(
   stocks: Stock[],
   onUpdate: (data: Map<string, LivePrice>) => void,
+  intervalMs: number | null,
 ) {
   const stocksRef = useRef(stocks);
   useEffect(() => { stocksRef.current = stocks; }, [stocks]);
@@ -17,10 +16,13 @@ export function usePriceRefresher(
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
 
   const refresh = useCallback(async () => {
+    if (inFlight.current) return;
     const current = stocksRef.current;
     if (!current.length) return;
+    inFlight.current = true;
     setIsRefreshing(true);
     setError(null);
     try {
@@ -34,16 +36,18 @@ export function usePriceRefresher(
     } catch (e) {
       setError(e instanceof Error ? e.message : '가격 조회 실패');
     } finally {
+      inFlight.current = false;
       setIsRefreshing(false);
     }
   }, []);
 
-  // initial fetch + periodic refresh
+  useEffect(() => { refresh(); }, [refresh]);
+
   useEffect(() => {
-    refresh();
-    const timer = setInterval(refresh, INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [refresh]);
+    if (intervalMs === null) return;
+    const id = setInterval(refresh, intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs, refresh]);
 
   return { isRefreshing, lastUpdated, error, refresh };
 }
