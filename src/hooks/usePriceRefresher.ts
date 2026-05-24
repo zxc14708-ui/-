@@ -26,7 +26,11 @@ export function usePriceRefresher(
     try {
       const data = await fetchLivePrices(current);
       onUpdateRef.current(data);
-      if (data.size > 0) setLastUpdated(new Date());
+      if (data.size > 0) {
+        setLastUpdated(new Date());
+      } else {
+        setError('CORS 차단 또는 API 응답 없음');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : '가격 조회 실패');
     } finally {

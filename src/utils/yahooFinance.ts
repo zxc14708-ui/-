@@ -8,40 +8,40 @@ export interface LivePrice {
 function toYahooTicker(ticker: string, market: string): string {
   if (market === 'KRX') return `${ticker}.KS`;
   if (market === 'KOSDAQ') return `${ticker}.KQ`;
-  return ticker; // NYSE, NASDAQ
+  return ticker;
+}
+
+async function fetchSingle(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
+  const symbol = toYahooTicker(stock.ticker, stock.market);
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const meta = json.chart?.result?.[0]?.meta;
+    const price: number | undefined = meta?.regularMarketPrice;
+    if (!price) return null;
+    return { id: stock.id, price, prevClose: meta.chartPreviousClose ?? price };
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, LivePrice>> {
   if (!stocks.length) return new Map();
 
   const result = new Map<string, LivePrice>();
-  const BATCH = 20;
+  // 5개씩 병렬 처리 (rate limit 방지)
+  const CHUNK = 5;
 
-  for (let i = 0; i < stocks.length; i += BATCH) {
-    const batch = stocks.slice(i, i + BATCH);
-    const symbols = batch.map(s => toYahooTicker(s.ticker, s.market)).join(',');
-    const url =
-      `https://query1.finance.yahoo.com/v7/finance/quote` +
-      `?symbols=${encodeURIComponent(symbols)}` +
-      `&fields=regularMarketPrice,regularMarketPreviousClose`;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Yahoo Finance HTTP ${res.status}`);
-
-    const json = await res.json();
-    const quotes: Record<string, number>[] = json.quoteResponse?.result ?? [];
-
-    for (const q of quotes) {
-      const yahooSym: string = q.symbol as unknown as string;
-      const stock = batch.find(s => toYahooTicker(s.ticker, s.market) === yahooSym);
-      if (!stock) continue;
-      const price = q.regularMarketPrice as unknown as number;
-      if (price == null) continue;
-      result.set(stock.id, {
-        price,
-        prevClose: (q.regularMarketPreviousClose as unknown as number) ?? price,
-      });
-    }
+  for (let i = 0; i < stocks.length; i += CHUNK) {
+    const chunk = stocks.slice(i, i + CHUNK);
+    const settled = await Promise.allSettled(chunk.map(fetchSingle));
+    settled.forEach(r => {
+      if (r.status === 'fulfilled' && r.value) {
+        result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });
+      }
+    });
   }
 
   return result;
