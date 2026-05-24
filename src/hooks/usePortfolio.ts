@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getPrevClose } from '../data/mockData';
 import type { Stock, Account, StockWithStats } from '../types';
 
@@ -7,9 +7,23 @@ const ACCOUNT_COLORS = [
   '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6',
 ];
 
+function load<T>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch { return fallback; }
+}
+
+function save<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 export function usePortfolio(usdToKrw: number) {
-  const [stocks, setStocks] = useState<Stock[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>(() => load('portfolio_stocks', []));
+  const [accounts, setAccounts] = useState<Account[]>(() => load('portfolio_accounts', []));
+
+  useEffect(() => { save('portfolio_stocks', stocks); }, [stocks]);
+  useEffect(() => { save('portfolio_accounts', accounts); }, [accounts]);
 
   const stocksWithStats = useMemo<StockWithStats[]>(() =>
     stocks.map((s, i) => {
