@@ -65,15 +65,6 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <SearchBar stocks={stocks} onSelect={handleSearchSelect} />
-            <button
-              onClick={() => setShowAddStockModal(true)}
-              disabled={accounts.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-colors flex-shrink-0"
-              title={accounts.length === 0 ? '계좌를 먼저 추가하세요' : ''}
-            >
-              <Plus size={15} />
-              종목 추가
-            </button>
           </div>
         </div>
 
@@ -129,11 +120,22 @@ export default function App() {
                   </span>
                 )}
               </h3>
-              <span className="text-gray-500 text-xs">
-                {selectedAccountId
-                  ? stocks.filter(s => s.accountId === selectedAccountId).length
-                  : stocks.length}개 종목
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-gray-500 text-xs">
+                  {selectedAccountId
+                    ? stocks.filter(s => s.accountId === selectedAccountId).length
+                    : stocks.length}개 종목
+                </span>
+                <button
+                  onClick={() => setShowAddStockModal(true)}
+                  disabled={accounts.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                  title={accounts.length === 0 ? '계좌를 먼저 추가하세요' : ''}
+                >
+                  <Plus size={14} />
+                  종목 추가
+                </button>
+              </div>
             </div>
             <StockTable
               stocks={stocks}
