@@ -200,6 +200,7 @@ export default function App() {
       {showAddStockModal && (
         <AddStockModal
           accounts={accounts}
+          defaultAccountId={selectedAccountId ?? undefined}
           onAdd={handleAddStock}
           onClose={() => setShowAddStockModal(false)}
         />

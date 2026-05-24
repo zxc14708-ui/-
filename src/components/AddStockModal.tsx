@@ -6,11 +6,12 @@ import { searchYahooFinance, type StockEntry } from '../utils/yahooFinance';
 
 interface Props {
   accounts: Account[];
+  defaultAccountId?: string;
   onAdd: (stock: Stock) => void;
   onClose: () => void;
 }
 
-export function AddStockModal({ accounts, onAdd, onClose }: Props) {
+export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<StockEntry[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -18,7 +19,9 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
   const [isLiveSearching, setIsLiveSearching] = useState(false);
   const liveSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(
+    defaultAccountId ?? accounts[0]?.id ?? ''
+  );
   const [quantity, setQuantity] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [avgCost, setAvgCost] = useState('');
