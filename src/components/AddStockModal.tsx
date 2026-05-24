@@ -212,7 +212,7 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
             <Field label="수량 *" value={quantity} onChange={setQuantity} placeholder="0" type="number" />
             <Field
               label={`평균단가 * (${isUSD ? '$' : '₩'})`}
-              value={avgCost} onChange={setAvgCost} placeholder="0" type="number"
+              value={avgCost} onChange={setAvgCost} placeholder="0" type="number" step="0.001"
             />
           </div>
 
@@ -238,9 +238,9 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text' }: {
+function Field({ label, value, onChange, placeholder, type = 'text', step }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string;
+  placeholder?: string; type?: string; step?: string;
 }) {
   return (
     <div>
@@ -251,6 +251,7 @@ function Field({ label, value, onChange, placeholder, type = 'text' }: {
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         min={type === 'number' ? '0' : undefined}
+        step={step}
         className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
       />
     </div>
