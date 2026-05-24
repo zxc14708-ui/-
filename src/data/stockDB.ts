@@ -77,12 +77,77 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: 'MA', nameKo: '마스터카드', nameEn: 'Mastercard Inc.', market: 'NYSE', currency: 'USD' },
   { ticker: 'XOM', nameKo: '엑슨모빌', nameEn: 'ExxonMobil Corp.', market: 'NYSE', currency: 'USD' },
   { ticker: 'BRK.B', nameKo: '버크셔해서웨이', nameEn: 'Berkshire Hathaway', market: 'NYSE', currency: 'USD' },
-  // ETF
-  { ticker: 'SPY', nameKo: 'S&P500 ETF', nameEn: 'SPDR S&P 500 ETF', market: 'NYSE', currency: 'USD' },
-  { ticker: 'QQQ', nameKo: '나스닥100 ETF', nameEn: 'Invesco QQQ Trust', market: 'NASDAQ', currency: 'USD' },
-  { ticker: 'VOO', nameKo: 'Vanguard S&P500', nameEn: 'Vanguard S&P 500 ETF', market: 'NYSE', currency: 'USD' },
-  { ticker: 'SOXL', nameKo: '반도체3배 ETF', nameEn: 'Direxion Semiconductor Bull 3X', market: 'NYSE', currency: 'USD' },
-  { ticker: 'TQQQ', nameKo: '나스닥3배 ETF', nameEn: 'ProShares UltraPro QQQ', market: 'NASDAQ', currency: 'USD' },
+  // 국내 ETF — KODEX
+  { ticker: '069500', nameKo: 'KODEX 200', nameEn: 'KODEX 200 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '229200', nameKo: 'KODEX 코스닥150', nameEn: 'KODEX KOSDAQ150 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '278540', nameKo: 'KODEX MSCI Korea TR', nameEn: 'KODEX MSCI Korea TR ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '091160', nameKo: 'KODEX 반도체', nameEn: 'KODEX Semiconductor ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '091180', nameKo: 'KODEX 자동차', nameEn: 'KODEX Automobile ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '117460', nameKo: 'KODEX 배당가치', nameEn: 'KODEX Dividend Value ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '148020', nameKo: 'KODEX 은행', nameEn: 'KODEX Bank ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '139220', nameKo: 'KODEX IT', nameEn: 'KODEX IT ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '261220', nameKo: 'KODEX WTI원유선물(H)', nameEn: 'KODEX WTI Crude Oil Futures ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '132030', nameKo: 'KODEX 골드선물(H)', nameEn: 'KODEX Gold Futures ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '251340', nameKo: 'KODEX 코스닥150레버리지', nameEn: 'KODEX KOSDAQ150 Leverage ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '122630', nameKo: 'KODEX 레버리지', nameEn: 'KODEX Leverage ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '114800', nameKo: 'KODEX 인버스', nameEn: 'KODEX Inverse ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '252670', nameKo: 'KODEX 200선물인버스2X', nameEn: 'KODEX 200 Futures Inverse 2X ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '379800', nameKo: 'KODEX 미국S&P500TR', nameEn: 'KODEX US S&P500 TR ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '133690', nameKo: 'KODEX 나스닥100', nameEn: 'KODEX NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '367380', nameKo: 'KODEX 미국나스닥100TR', nameEn: 'KODEX US NASDAQ100 TR ETF', market: 'KRX', currency: 'KRW' },
+  // 국내 ETF — TIGER
+  { ticker: '102110', nameKo: 'TIGER 200', nameEn: 'TIGER 200 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '143460', nameKo: 'TIGER 코스닥150', nameEn: 'TIGER KOSDAQ150 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '305720', nameKo: 'TIGER 2차전지테마', nameEn: 'TIGER Secondary Battery Theme ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '139270', nameKo: 'TIGER 200 IT', nameEn: 'TIGER 200 IT ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '266160', nameKo: 'TIGER 코스피고배당', nameEn: 'TIGER KOSPI High Dividend ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '195930', nameKo: 'TIGER 해외선진국MSCI World', nameEn: 'TIGER MSCI World ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '143850', nameKo: 'TIGER 미국S&P500', nameEn: 'TIGER US S&P500 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '133690', nameKo: 'TIGER 미국나스닥100', nameEn: 'TIGER US NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '360750', nameKo: 'TIGER 미국S&P500TR', nameEn: 'TIGER US S&P500 TR ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '381170', nameKo: 'TIGER 미국나스닥100TR', nameEn: 'TIGER US NASDAQ100 TR ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '329200', nameKo: 'TIGER 미국채10년선물', nameEn: 'TIGER US 10Y Treasury Futures ETF', market: 'KRX', currency: 'KRW' },
+  // 국내 ETF — ARIRANG / KINDEX / ACE
+  { ticker: '182480', nameKo: 'ARIRANG 고배당주', nameEn: 'ARIRANG High Dividend ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '140570', nameKo: 'ARIRANG 200', nameEn: 'ARIRANG 200 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '278420', nameKo: 'KINDEX 미국S&P500', nameEn: 'KINDEX US S&P500 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '371460', nameKo: 'ACE 미국S&P500', nameEn: 'ACE US S&P500 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '411060', nameKo: 'ACE 미국나스닥100', nameEn: 'ACE US NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
+  // 미국 ETF — 지수
+  { ticker: 'SPY', nameKo: 'SPDR S&P500 ETF', nameEn: 'SPDR S&P 500 ETF Trust', market: 'NYSE', currency: 'USD' },
+  { ticker: 'QQQ', nameKo: '인베스코 나스닥100 ETF', nameEn: 'Invesco QQQ Trust', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'VOO', nameKo: '뱅가드 S&P500 ETF', nameEn: 'Vanguard S&P 500 ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'VTI', nameKo: '뱅가드 전체주식시장 ETF', nameEn: 'Vanguard Total Stock Market ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'IVV', nameKo: '아이셰어즈 S&P500 ETF', nameEn: 'iShares Core S&P 500 ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'VEA', nameKo: '뱅가드 선진국 ETF', nameEn: 'Vanguard FTSE Developed Markets ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'VWO', nameKo: '뱅가드 신흥국 ETF', nameEn: 'Vanguard FTSE Emerging Markets ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'EWY', nameKo: '아이셰어즈 한국 ETF', nameEn: 'iShares MSCI South Korea ETF', market: 'NYSE', currency: 'USD' },
+  // 미국 ETF — 섹터
+  { ticker: 'SOXX', nameKo: '아이셰어즈 반도체 ETF', nameEn: 'iShares Semiconductor ETF', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'SMH', nameKo: 'VanEck 반도체 ETF', nameEn: 'VanEck Semiconductor ETF', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'XLK', nameKo: 'SPDR 기술섹터 ETF', nameEn: 'Technology Select Sector SPDR ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'XLF', nameKo: 'SPDR 금융섹터 ETF', nameEn: 'Financial Select Sector SPDR ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'XLE', nameKo: 'SPDR 에너지섹터 ETF', nameEn: 'Energy Select Sector SPDR ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'XLV', nameKo: 'SPDR 헬스케어섹터 ETF', nameEn: 'Health Care Select Sector SPDR ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'ARKK', nameKo: 'ARK 이노베이션 ETF', nameEn: 'ARK Innovation ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'ARKG', nameKo: 'ARK 유전체혁명 ETF', nameEn: 'ARK Genomic Revolution ETF', market: 'NYSE', currency: 'USD' },
+  // 미국 ETF — 레버리지/인버스
+  { ticker: 'TQQQ', nameKo: '나스닥100 3배 ETF', nameEn: 'ProShares UltraPro QQQ', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'SQQQ', nameKo: '나스닥100 인버스3배 ETF', nameEn: 'ProShares UltraPro Short QQQ', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'SOXL', nameKo: '반도체 3배 ETF', nameEn: 'Direxion Daily Semiconductor Bull 3X ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'SOXS', nameKo: '반도체 인버스3배 ETF', nameEn: 'Direxion Daily Semiconductor Bear 3X ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'UPRO', nameKo: 'S&P500 3배 ETF', nameEn: 'ProShares UltraPro S&P500', market: 'NYSE', currency: 'USD' },
+  { ticker: 'SPXS', nameKo: 'S&P500 인버스3배 ETF', nameEn: 'Direxion Daily S&P500 Bear 3X ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'LABU', nameKo: '바이오테크 3배 ETF', nameEn: 'Direxion Daily S&P Biotech Bull 3X ETF', market: 'NYSE', currency: 'USD' },
+  // 미국 ETF — 채권/원자재
+  { ticker: 'TLT', nameKo: '미국장기국채 ETF', nameEn: 'iShares 20+ Year Treasury Bond ETF', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'IEF', nameKo: '미국중기국채 ETF', nameEn: 'iShares 7-10 Year Treasury Bond ETF', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'LQD', nameKo: '투자등급회사채 ETF', nameEn: 'iShares iBoxx Investment Grade Corp Bond ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'HYG', nameKo: '하이일드채권 ETF', nameEn: 'iShares iBoxx High Yield Corp Bond ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'GLD', nameKo: '금 ETF', nameEn: 'SPDR Gold Shares ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'SLV', nameKo: '은 ETF', nameEn: 'iShares Silver Trust ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'USO', nameKo: '원유 ETF', nameEn: 'United States Oil Fund ETF', market: 'NYSE', currency: 'USD' },
+  { ticker: 'DBC', nameKo: '원자재 ETF', nameEn: 'Invesco DB Commodity Index Tracking Fund', market: 'NYSE', currency: 'USD' },
 ];
 
 export function searchStocks(query: string): StockEntry[] {
@@ -93,7 +158,16 @@ export function searchStocks(query: string): StockEntry[] {
     if (fields.some(f => f === q)) return { s, score: 100 };
     if (fields.some(f => f.startsWith(q))) return { s, score: 80 };
     if (fields.some(f => f.includes(q))) return { s, score: 60 };
+    // 퍼지: 모든 글자가 순서대로 포함
+    const fuzzy = (str: string) => {
+      let qi = 0;
+      for (let i = 0; i < str.length && qi < q.length; i++) {
+        if (str[i] === q[qi]) qi++;
+      }
+      return qi === q.length;
+    };
+    if (fields.some(fuzzy)) return { s, score: 30 };
     return { s, score: 0 };
   }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
-  return scored.slice(0, 8).map(r => r.s);
+  return scored.slice(0, 10).map(r => r.s);
 }
