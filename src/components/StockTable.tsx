@@ -64,7 +64,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                 </button>
               </th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">수량</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">현재가</th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">평균금액</th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
                 <button onClick={() => toggleSort('changeRate')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   등락률 <SortIcon k="changeRate" />
@@ -115,8 +115,8 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
                     {stock.currency === 'USD'
-                      ? `$${stock.currentPrice.toFixed(2)}`
-                      : `₩${stock.currentPrice.toLocaleString()}`}
+                      ? `$${stock.avgCost.toFixed(2)}`
+                      : `₩${stock.avgCost.toLocaleString()}`}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={`inline-flex items-center gap-0.5 font-semibold ${stock.changeRate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
