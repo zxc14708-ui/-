@@ -407,6 +407,7 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: '379800', nameKo: 'KODEX 미국S&P500', nameEn: 'KODEX US S&P500 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '379810', nameKo: 'KODEX 미국나스닥100', nameEn: 'KODEX US NASDAQ100 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '304660', nameKo: 'KODEX 미국채울트라30년선물(H)', nameEn: 'KODEX US Treasury Ultra 30Y ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '308620', nameKo: 'KODEX 미국10년국채선물', nameEn: 'KODEX US 10Y Treasury Note Futures ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '305720', nameKo: 'KODEX 2차전지산업', nameEn: 'KODEX Secondary Battery Industry ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '453810', nameKo: 'KODEX 인도Nifty50', nameEn: 'KODEX India Nifty50 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '390390', nameKo: 'KODEX 미국반도체MV', nameEn: 'KODEX US Semiconductor MV ETF', market: 'KRX', currency: 'KRW' },
@@ -442,9 +443,9 @@ export const STOCK_DB: StockEntry[] = [
   // 국내 ETF — HANARO (NH아문디자산운용)
   { ticker: '293180', nameKo: 'HANARO 200', nameEn: 'HANARO 200 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '432840', nameKo: 'HANARO 미국S&P500', nameEn: 'HANARO US S&P500 ETF', market: 'KRX', currency: 'KRW' },
-  // 국내 ETF — ARIRANG (한화자산운용)
-  { ticker: '161510', nameKo: 'ARIRANG 고배당주', nameEn: 'ARIRANG High Dividend ETF', market: 'KRX', currency: 'KRW' },
-  { ticker: '152100', nameKo: 'ARIRANG 200', nameEn: 'ARIRANG 200 ETF', market: 'KRX', currency: 'KRW' },
+  // 국내 ETF — PLUS (한화자산운용, 구 ARIRANG → 2024.07 브랜드 변경)
+  { ticker: '161510', nameKo: 'PLUS 고배당주', nameEn: 'PLUS High Dividend ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '152100', nameKo: 'PLUS 200', nameEn: 'PLUS 200 ETF', market: 'KRX', currency: 'KRW' },
   // 국내 ETF — RISE (KB자산운용)
   { ticker: '266160', nameKo: 'RISE 고배당', nameEn: 'RISE High Dividend ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '379780', nameKo: 'RISE 미국S&P500', nameEn: 'RISE US S&P500 ETF', market: 'KRX', currency: 'KRW' },
