@@ -5,6 +5,8 @@ export interface LivePrice {
   prevClose: number;
 }
 
+export type StockEntry = Pick<Stock, 'ticker' | 'nameKo' | 'nameEn' | 'market' | 'currency'>;
+
 const WORKER = 'https://my-stock-proxy.zxc14708.workers.dev/?url=';
 
 function proxy(target: string): string {
@@ -73,4 +75,52 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   }
 
   return result;
+}
+
+// Yahoo Finance 거래소 코드 → market 매핑
+const EXCHANGE_MAP: Record<string, Stock['market']> = {
+  NMS: 'NASDAQ', // NASDAQ Global Select
+  NGM: 'NASDAQ', // NASDAQ Global Market
+  NCM: 'NASDAQ', // NASDAQ Capital Market
+  NYQ: 'NYSE',   // NYSE
+  ASE: 'NYSE',   // NYSE American (Amex)
+  PCX: 'NYSE',   // NYSE Arca
+  NYS: 'NYSE',
+  KSC: 'KRX',    // Korea Stock Exchange (KOSPI)
+  KOE: 'KOSDAQ', // KOSDAQ
+};
+
+export async function searchYahooFinance(query: string): Promise<StockEntry[]> {
+  const url = proxy(
+    `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=15&newsCount=0&enableFuzzyQuery=false`
+  );
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = await res.json();
+    const quotes: Array<Record<string, string>> = json.quotes ?? [];
+    return quotes
+      .filter(q => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
+      .map(q => {
+        const symbol = q.symbol ?? '';
+        let ticker = symbol;
+        let market: Stock['market'] = EXCHANGE_MAP[q.exchange] ?? 'NYSE';
+        let currency: Stock['currency'] = 'USD';
+
+        if (symbol.endsWith('.KS')) {
+          ticker = symbol.replace('.KS', '');
+          market = 'KRX';
+          currency = 'KRW';
+        } else if (symbol.endsWith('.KQ')) {
+          ticker = symbol.replace('.KQ', '');
+          market = 'KOSDAQ';
+          currency = 'KRW';
+        }
+
+        const name = q.longname || q.shortname || symbol;
+        return { ticker, nameKo: name, nameEn: name, market, currency };
+      });
+  } catch {
+    return [];
+  }
 }

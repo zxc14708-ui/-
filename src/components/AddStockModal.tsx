@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Search, ChevronDown } from 'lucide-react';
+import { X, Search, ChevronDown, Loader2 } from 'lucide-react';
 import type { Stock, Account } from '../types';
 import { searchStocks } from '../data/stockDB';
+import { searchYahooFinance, type StockEntry } from '../utils/yahooFinance';
 
 interface Props {
   accounts: Account[];
@@ -11,9 +12,11 @@ interface Props {
 
 export function AddStockModal({ accounts, onAdd, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<ReturnType<typeof searchStocks>>([]);
+  const [suggestions, setSuggestions] = useState<StockEntry[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selected, setSelected] = useState<ReturnType<typeof searchStocks>[0] | null>(null);
+  const [selected, setSelected] = useState<StockEntry | null>(null);
+  const [isLiveSearching, setIsLiveSearching] = useState(false);
+  const liveSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   const [quantity, setQuantity] = useState('');
@@ -35,9 +38,29 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
   function handleQueryChange(v: string) {
     setQuery(v);
     setSelected(null);
-    const results = searchStocks(v);
-    setSuggestions(results);
+
+    if (liveSearchTimer.current) clearTimeout(liveSearchTimer.current);
+
+    const localResults = searchStocks(v);
+    setSuggestions(localResults);
     setShowSuggestions(true);
+
+    if (v.trim().length < 2) {
+      setIsLiveSearching(false);
+      return;
+    }
+
+    setIsLiveSearching(true);
+    liveSearchTimer.current = setTimeout(async () => {
+      try {
+        const liveResults = await searchYahooFinance(v);
+        const localTickers = new Set(localResults.map(r => r.ticker.toLowerCase()));
+        const extras = liveResults.filter(r => !localTickers.has(r.ticker.toLowerCase()));
+        setSuggestions([...localResults, ...extras].slice(0, 15));
+      } finally {
+        setIsLiveSearching(false);
+      }
+    }, 400);
   }
 
   function handleSelect(item: ReturnType<typeof searchStocks>[0]) {
@@ -105,7 +128,8 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
                   className="bg-transparent text-white text-sm outline-none flex-1 placeholder:text-gray-600"
                   autoFocus
                 />
-                {query && (
+                {isLiveSearching && <Loader2 size={13} className="text-blue-400 animate-spin flex-shrink-0" />}
+                {query && !isLiveSearching && (
                   <button type="button" onClick={handleClear} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
                     <X size={13} />
                   </button>
@@ -142,8 +166,10 @@ export function AddStockModal({ accounts, onAdd, onClose }: Props) {
               )}
 
               {showSuggestions && query && suggestions.length === 0 && (
-                <div className="absolute top-full mt-1 w-full bg-[#0f1117] border border-[#2e3151] rounded-xl shadow-2xl z-50 px-4 py-3 text-gray-500 text-sm">
-                  검색 결과가 없습니다
+                <div className="absolute top-full mt-1 w-full bg-[#0f1117] border border-[#2e3151] rounded-xl shadow-2xl z-50 px-4 py-3 text-gray-500 text-sm flex items-center gap-2">
+                  {isLiveSearching
+                    ? <><Loader2 size={13} className="animate-spin text-blue-400" />검색 중...</>
+                    : '검색 결과가 없습니다'}
                 </div>
               )}
             </div>
