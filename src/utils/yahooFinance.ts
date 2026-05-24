@@ -11,9 +11,12 @@ function toYahooTicker(ticker: string, market: string): string {
   return ticker;
 }
 
+const CORS_PROXY = 'https://corsproxy.io/?url=';
+
 async function fetchSingle(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
   const symbol = toYahooTicker(stock.ticker, stock.market);
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const target = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const url = CORS_PROXY + encodeURIComponent(target);
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
