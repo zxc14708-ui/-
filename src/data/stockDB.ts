@@ -117,6 +117,7 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: '426410', nameKo: 'TIGER 차이나항셍테크', nameEn: 'TIGER China Hang Seng Tech ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '445090', nameKo: 'TIGER 미국반도체(SOXX)MV', nameEn: 'TIGER US Semiconductor SOXX MV ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '459580', nameKo: 'TIGER 미국AI빅테크10', nameEn: 'TIGER US AI Big Tech 10 ETF', market: 'KRX', currency: 'KRW' },
+  { ticker: '0183J0', nameKo: 'TIGER 미국우주테크', nameEn: 'TIGER US Space Tech ETF', market: 'KRX', currency: 'KRW' },
   // 국내 ETF — ACE (한국투자신탁운용)
   { ticker: '280940', nameKo: 'ACE 200', nameEn: 'ACE 200 ETF', market: 'KRX', currency: 'KRW' },
   { ticker: '371460', nameKo: 'ACE 미국S&P500', nameEn: 'ACE US S&P500 ETF', market: 'KRX', currency: 'KRW' },
