@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
+import type { DisplayCurrency } from '../utils/currency';
+import { fmtAmountFull } from '../utils/currency';
 
 interface Props {
   stocks: StockWithStats[];
@@ -9,12 +11,15 @@ interface Props {
   highlightId: string | null;
   onDelete: (id: string) => void;
   onBuyMore: (stock: StockWithStats) => void;
+  displayCurrency: DisplayCurrency;
+  usdToKrw: number;
 }
 
 type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity';
 type Dir = 'asc' | 'desc';
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
+  const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
 
@@ -131,11 +136,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-white tabular-nums">
-                    ₩{Math.round(stock.marketValueKrw).toLocaleString()}
+                    {fmtVal(stock.marketValueKrw)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {stock.gainLossKrw >= 0 ? '+' : ''}₩{Math.round(stock.gainLossKrw).toLocaleString()}
+                      {stock.gainLossKrw >= 0 ? '+' : ''}{fmtVal(stock.gainLossKrw)}
                     </span>
                     <div className={`text-xs ${stock.gainLossPct >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {stock.gainLossPct >= 0 ? '+' : ''}{stock.gainLossPct.toFixed(2)}%

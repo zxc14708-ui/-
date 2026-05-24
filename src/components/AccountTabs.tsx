@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import type { Account, StockWithStats } from '../types';
+import type { DisplayCurrency } from '../utils/currency';
+import { fmtAmount } from '../utils/currency';
 
 interface Props {
   accounts: Account[];
@@ -9,11 +11,14 @@ interface Props {
   onSelect: (id: string | null) => void;
   onAddAccount: () => void;
   onDeleteAccount: (id: string) => void;
+  displayCurrency: DisplayCurrency;
+  usdToKrw: number;
 }
 
-export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount, onDeleteAccount }: Props) {
+export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount, onDeleteAccount, displayCurrency, usdToKrw }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const totalValue = stocks.reduce((s, st) => s + st.marketValueKrw, 0);
+  const fmt = (n: number) => fmtAmount(n, displayCurrency, usdToKrw);
 
   function accountValue(accountId: string) {
     return stocks.filter(s => s.accountId === accountId).reduce((s, st) => s + st.marketValueKrw, 0);
@@ -25,12 +30,6 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
 
   function accountStockCount(accountId: string) {
     return stocks.filter(s => s.accountId === accountId).length;
-  }
-
-  function fmt(n: number) {
-    if (Math.abs(n) >= 100_000_000) return (n / 100_000_000).toFixed(1) + '억';
-    if (Math.abs(n) >= 10000) return (n / 10000).toFixed(0) + '만';
-    return n.toLocaleString();
   }
 
   function handleDelete(e: React.MouseEvent, id: string) {
@@ -51,7 +50,6 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
 
   return (
     <div className="flex gap-2 flex-wrap items-start">
-      {/* 전체 */}
       <button
         onClick={() => onSelect(null)}
         className={`flex-shrink-0 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
@@ -61,7 +59,7 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
         }`}
       >
         <div>전체 계좌</div>
-        <div className="text-xs opacity-75 tabular-nums">₩{fmt(totalValue)}</div>
+        <div className="text-xs opacity-75 tabular-nums">{fmt(totalValue)}</div>
       </button>
 
       {accounts.map(acc => {
@@ -76,9 +74,7 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
             <button
               onClick={() => { onSelect(acc.id); setConfirmDelete(null); }}
               className={`flex-shrink-0 pl-4 pr-8 py-2 rounded-xl border text-sm font-medium transition-all text-left ${
-                isSelected
-                  ? 'text-white'
-                  : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
+                isSelected ? 'text-white' : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
               }`}
               style={isSelected ? { background: acc.color + '33', borderColor: acc.color } : {}}
             >
@@ -87,7 +83,7 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
                 <span>{acc.name}</span>
               </div>
               <div className="flex gap-2 text-xs opacity-75 tabular-nums mt-0.5">
-                <span>₩{fmt(val)}</span>
+                <span>{fmt(val)}</span>
                 {cnt > 0 && (
                   <span className={gl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                     {gl >= 0 ? '+' : ''}{fmt(gl)}
@@ -97,20 +93,15 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
               </div>
             </button>
 
-            {/* 삭제 버튼 */}
             {isConfirming ? (
               <div className="absolute top-1 right-1 flex gap-0.5">
                 <button
                   onClick={e => handleDelete(e, acc.id)}
                   className="bg-red-600 hover:bg-red-500 text-white text-xs px-1.5 py-0.5 rounded transition-colors"
-                  title="삭제 확인"
                 >
                   삭제
                 </button>
-                <button
-                  onClick={cancelDelete}
-                  className="text-gray-400 hover:text-white p-0.5 rounded transition-colors"
-                >
+                <button onClick={cancelDelete} className="text-gray-400 hover:text-white p-0.5 rounded transition-colors">
                   <X size={12} />
                 </button>
               </div>
@@ -127,7 +118,6 @@ export function AccountTabs({ accounts, stocks, selected, onSelect, onAddAccount
         );
       })}
 
-      {/* 계좌 추가 버튼 */}
       <button
         onClick={onAddAccount}
         className="flex-shrink-0 px-4 py-2 rounded-xl border border-dashed border-[#2e3151] text-gray-600 hover:text-gray-300 hover:border-gray-500 text-sm transition-all flex items-center gap-1.5"

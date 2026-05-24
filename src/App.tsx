@@ -11,6 +11,7 @@ import { StockTable } from './components/StockTable';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
 import { BuyMoreModal } from './components/BuyMoreModal';
+import type { DisplayCurrency } from './utils/currency';
 import type { Stock, StockWithStats } from './types';
 import './index.css';
 
@@ -28,6 +29,7 @@ export default function App() {
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [buyMoreTarget, setBuyMoreTarget] = useState<StockWithStats | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>('KRW');
 
   function handleSearchSelect(id: string) {
     const stock = stocks.find(s => s.id === id);
@@ -41,10 +43,6 @@ export default function App() {
   function handleAddStock(stock: Stock) {
     addStock(stock);
     setSelectedAccountId(stock.accountId);
-  }
-
-  function handleAddAccount(name: string, broker: string) {
-    addAccount(name, broker);
   }
 
   function handleBuyMore(id: string, addQty: number, addPrice: number) {
@@ -62,7 +60,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
-      <ExchangeRateBar rate={rate} loading={rateLoading} error={rateError} />
+      <ExchangeRateBar
+        rate={rate}
+        loading={rateLoading}
+        error={rateError}
+        displayCurrency={displayCurrency}
+        onToggle={() => setDisplayCurrency(c => c === 'KRW' ? 'USD' : 'KRW')}
+      />
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
         {/* Header */}
@@ -84,6 +88,8 @@ export default function App() {
           totalValueKrw={totalValueKrw}
           totalGainLossKrw={totalGainLossKrw}
           totalCostKrw={totalCostKrw}
+          displayCurrency={displayCurrency}
+          usdToKrw={rate.usdToKrw}
         />
 
         {/* Account Tabs */}
@@ -94,6 +100,8 @@ export default function App() {
           onSelect={setSelectedAccountId}
           onAddAccount={() => setShowAddAccountModal(true)}
           onDeleteAccount={handleDeleteAccount}
+          displayCurrency={displayCurrency}
+          usdToKrw={rate.usdToKrw}
         />
 
         {/* 계좌 없을 때 안내 */}
@@ -140,7 +148,6 @@ export default function App() {
                   onClick={() => setShowAddStockModal(true)}
                   disabled={accounts.length === 0}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
-                  title={accounts.length === 0 ? '계좌를 먼저 추가하세요' : ''}
                 >
                   <Plus size={14} />
                   종목 추가
@@ -154,6 +161,8 @@ export default function App() {
               highlightId={highlightId}
               onDelete={deleteStock}
               onBuyMore={setBuyMoreTarget}
+              displayCurrency={displayCurrency}
+              usdToKrw={rate.usdToKrw}
             />
           </div>
         )}
@@ -169,7 +178,7 @@ export default function App() {
 
       {showAddAccountModal && (
         <AddAccountModal
-          onAdd={handleAddAccount}
+          onAdd={(name, broker) => addAccount(name, broker)}
           onClose={() => setShowAddAccountModal(false)}
         />
       )}

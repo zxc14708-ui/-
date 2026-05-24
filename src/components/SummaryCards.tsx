@@ -1,4 +1,6 @@
 import type { StockWithStats } from '../types';
+import type { DisplayCurrency } from '../utils/currency';
+import { fmtAmount } from '../utils/currency';
 import { Wallet, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 
 interface Props {
@@ -6,25 +8,22 @@ interface Props {
   totalValueKrw: number;
   totalGainLossKrw: number;
   totalCostKrw: number;
+  displayCurrency: DisplayCurrency;
+  usdToKrw: number;
 }
 
-function fmt(n: number) {
-  if (Math.abs(n) >= 1_0000_0000) return (n / 1_0000_0000).toFixed(2) + '억';
-  if (Math.abs(n) >= 10000) return (n / 10000).toFixed(1) + '만';
-  return n.toLocaleString('ko-KR');
-}
-
-export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw }: Props) {
+export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw, displayCurrency, usdToKrw }: Props) {
   const gainPct = totalCostKrw > 0 ? (totalGainLossKrw / totalCostKrw) * 100 : 0;
   const rising = stocks.filter(s => s.changeRate > 0).length;
   const falling = stocks.filter(s => s.changeRate < 0).length;
+  const fmt = (n: number) => fmtAmount(n, displayCurrency, usdToKrw);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <Card
         icon={<Wallet size={18} className="text-blue-400" />}
         label="총 평가금액"
-        value={`₩${fmt(totalValueKrw)}`}
+        value={fmt(totalValueKrw)}
         sub={`${stocks.length}개 종목`}
         color="blue"
       />
@@ -33,7 +32,7 @@ export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCos
           ? <TrendingUp size={18} className="text-emerald-400" />
           : <TrendingDown size={18} className="text-red-400" />}
         label="평가손익"
-        value={`${totalGainLossKrw >= 0 ? '+' : ''}₩${fmt(totalGainLossKrw)}`}
+        value={`${totalGainLossKrw >= 0 ? '+' : ''}${fmt(totalGainLossKrw)}`}
         sub={`${gainPct >= 0 ? '+' : ''}${gainPct.toFixed(2)}%`}
         color={totalGainLossKrw >= 0 ? 'green' : 'red'}
       />
