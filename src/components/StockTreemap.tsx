@@ -124,9 +124,46 @@ export function StockTreemap({ stocks, selectedAccountId }: Props) {
             const bg = changeColor(stock.changeRate);
             const PAD = 3;
             const isHov = hovered === stock.id;
-            const showTicker = w > 60 && h > 28;
-            const showRate = w > 60 && h > 48;
-            const showName = w > 80 && h > 68;
+            const cellW = Math.max(0, w - PAD * 2);
+            const cellH = Math.max(0, h - PAD * 2);
+
+            // 셀 크기의 기하평균 기반 폰트 크기 계산
+            const cellSize = Math.sqrt(cellW * cellH);
+            const tickerFs = Math.min(Math.max(8, cellSize / 6), 22);
+            const rateFs   = Math.min(Math.max(7, cellSize / 8), 16);
+            const nameFs   = Math.min(Math.max(7, cellSize / 11), 13);
+            const lineGap  = Math.max(2, tickerFs * 0.25);
+
+            // 공간에 따라 표시 여부 결정
+            const showTicker = cellW > 30 && cellH > tickerFs + 4;
+            const showRate   = showTicker && cellH > tickerFs + rateFs + lineGap + 6;
+            const showName   = showRate   && cellW > 55 && cellH > tickerFs + rateFs + nameFs + lineGap * 2 + 6;
+
+            // 표시할 텍스트 라인 구성 (ticker → name → rate 순)
+            type Line = { text: string; fs: number; fw: number; alpha: number };
+            const lines: Line[] = [];
+            if (showTicker) lines.push({ text: stock.ticker, fs: tickerFs, fw: 700, alpha: 0.95 });
+            if (showName) {
+              // 너비에 맞게 한글명 자르기 (한글 1자 ≈ 1em)
+              const maxChars = Math.floor(cellW / (nameFs * 0.95));
+              const name = stock.nameKo.length > maxChars
+                ? stock.nameKo.slice(0, Math.max(1, maxChars - 1)) + '…'
+                : stock.nameKo;
+              lines.push({ text: name, fs: nameFs, fw: 400, alpha: 0.70 });
+            }
+            if (showRate) {
+              const sign = stock.changeRate >= 0 ? '+' : '';
+              lines.push({ text: `${sign}${stock.changeRate.toFixed(2)}%`, fs: rateFs, fw: 600, alpha: 0.90 });
+            }
+
+            // 텍스트 블록 전체 높이로 세로 중앙 정렬
+            const totalTextH = lines.reduce((s, l, i) => s + l.fs + (i > 0 ? lineGap : 0), 0);
+            let curTop = y + (h - totalTextH) / 2;
+            const lineYs: number[] = lines.map(l => {
+              const cy = curTop + l.fs / 2;
+              curTop += l.fs + lineGap;
+              return cy;
+            });
 
             return (
               <g
@@ -137,43 +174,25 @@ export function StockTreemap({ stocks, selectedAccountId }: Props) {
               >
                 <rect
                   x={x + PAD} y={y + PAD}
-                  width={Math.max(0, w - PAD * 2)}
-                  height={Math.max(0, h - PAD * 2)}
-                  fill={bg}
-                  rx={4}
+                  width={cellW} height={cellH}
+                  fill={bg} rx={4}
                   stroke={isHov ? '#fff' : 'transparent'}
                   strokeWidth={isHov ? 1.5 : 0}
                   style={{ transition: 'stroke 0.15s' }}
                 />
-                {showTicker && (
+                {lines.map((line, i) => (
                   <text
-                    x={x + w / 2} y={y + h / 2 - (showName ? 16 : showRate ? 10 : 0)}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fill="rgba(255,255,255,0.95)" fontSize={Math.min(14, w / 6)}
-                    fontWeight="700"
+                    key={i}
+                    x={x + w / 2} y={lineYs[i]}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={`rgba(255,255,255,${line.alpha})`}
+                    fontSize={line.fs}
+                    fontWeight={line.fw}
                   >
-                    {stock.ticker}
+                    {line.text}
                   </text>
-                )}
-                {showName && (
-                  <text
-                    x={x + w / 2} y={y + h / 2 - 2}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fill="rgba(255,255,255,0.7)" fontSize={Math.min(11, w / 8)}
-                  >
-                    {stock.nameKo}
-                  </text>
-                )}
-                {showRate && (
-                  <text
-                    x={x + w / 2} y={y + h / 2 + (showName ? 16 : 12)}
-                    textAnchor="middle" dominantBaseline="middle"
-                    fill="rgba(255,255,255,0.9)" fontSize={Math.min(12, w / 7)}
-                    fontWeight="600"
-                  >
-                    {stock.changeRate >= 0 ? '+' : ''}{stock.changeRate.toFixed(2)}%
-                  </text>
-                )}
+                ))}
               </g>
             );
           })}
