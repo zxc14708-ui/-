@@ -21,7 +21,7 @@ export default function App() {
   const {
     stocks, rawStocks, accounts,
     addStock, updateStock, deleteStock,
-    addAccount, deleteAccount,
+    addAccount, updateAccount, deleteAccount,
     bulkUpdateLiveData,
     totalValueKrw, totalGainLossKrw, totalCostKrw,
   } = usePortfolio(rate.usdToKrw);
@@ -106,6 +106,7 @@ export default function App() {
           onSelect={setSelectedAccountId}
           onAddAccount={() => setShowAddAccountModal(true)}
           onDeleteAccount={handleDeleteAccount}
+          onRenameAccount={updateAccount}
           displayCurrency={displayCurrency}
           usdToKrw={rate.usdToKrw}
         />

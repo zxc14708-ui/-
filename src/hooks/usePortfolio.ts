@@ -93,6 +93,10 @@ export function usePortfolio(usdToKrw: number) {
     setStocks(prev => prev.filter(s => s.accountId !== id));
   }, []);
 
+  const updateAccount = useCallback((id: string, name: string) => {
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, name } : a));
+  }, []);
+
   const totalValueKrw = useMemo(() =>
     stocksWithStats.reduce((sum, s) => sum + s.marketValueKrw, 0),
   [stocksWithStats]);
@@ -113,6 +117,7 @@ export function usePortfolio(usdToKrw: number) {
     updateStock,
     deleteStock,
     addAccount,
+    updateAccount,
     deleteAccount,
     bulkUpdateLiveData,
     totalValueKrw,
