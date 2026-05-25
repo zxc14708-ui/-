@@ -33,3 +33,19 @@ export interface StockWithStats extends Stock {
   gainLossKrw: number;    // 평가손익 (원화)
   gainLossPct: number;
 }
+
+export interface AccountSnapshot {
+  id: string;
+  name: string;
+  color: string;
+  valueKrw: number;
+}
+
+export interface DailySnapshot {
+  date: string;        // 'YYYY-MM-DD'
+  savedAt: number;     // Unix ms
+  accounts: AccountSnapshot[];
+  totalValueKrw: number;
+  usdToKrw: number;
+}
+
