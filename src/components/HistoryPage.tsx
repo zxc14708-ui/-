@@ -6,7 +6,7 @@ import {
 import { Camera } from 'lucide-react';
 import type { DailySnapshot, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
-import { fmtAmount } from '../utils/currency';
+import { fmtAmountFull } from '../utils/currency';
 
 type Period = 'day' | 'month' | 'year';
 
@@ -39,7 +39,7 @@ function dateLabel(date: string, period: Period): string {
 
 export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurrency, usdToKrw }: Props) {
   const [period, setPeriod] = useState<Period>('day');
-  const fmt = (v: number) => fmtAmount(v, displayCurrency, usdToKrw);
+  const fmt = (v: number) => fmtAmountFull(v, displayCurrency, usdToKrw);
 
   // Collect all unique account metadata across all snapshots (prefer current accounts)
   const allAccountInfo = useMemo(() => {

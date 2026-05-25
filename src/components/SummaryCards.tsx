@@ -1,6 +1,6 @@
 import type { StockWithStats } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
-import { fmtAmount } from '../utils/currency';
+import { fmtAmountFull } from '../utils/currency';
 import { Wallet, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 
 interface Props {
@@ -16,7 +16,7 @@ export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCos
   const gainPct = totalCostKrw > 0 ? (totalGainLossKrw / totalCostKrw) * 100 : 0;
   const rising = stocks.filter(s => s.changeRate > 0).length;
   const falling = stocks.filter(s => s.changeRate < 0).length;
-  const fmt = (n: number) => fmtAmount(n, displayCurrency, usdToKrw);
+  const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

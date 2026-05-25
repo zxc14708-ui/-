@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Pencil, AlertTriangle, GripVertical, Check } from 'lucide-react';
 import type { Account, StockWithStats } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
-import { fmtAmount } from '../utils/currency';
+import { fmtAmountFull } from '../utils/currency';
 
 const COLOR_PALETTE = [
   '#6366f1', '#8b5cf6', '#a855f7', '#ec4899',
@@ -40,7 +40,7 @@ export function AccountTabs({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const totalValue = stocks.reduce((s, st) => s + st.marketValueKrw, 0);
-  const fmt = (n: number) => fmtAmount(n, displayCurrency, usdToKrw);
+  const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
   useEffect(() => {
     if (editingId) editInputRef.current?.focus();
