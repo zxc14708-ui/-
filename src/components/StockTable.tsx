@@ -122,8 +122,9 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     avgCost: {
       label: '평균금액',
       renderCell: stock => (
-        <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
-          {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
+        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+          <div className="text-white">{fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}</div>
+          <div className="text-gray-500 text-xs mt-0.5">{fmtVal(stock.currency === 'USD' ? stock.currentPrice * usdToKrw : stock.currentPrice)}</div>
         </td>
       ),
     },
