@@ -85,8 +85,8 @@ export default function App() {
     if (selectedAccountId === id) setSelectedAccountId(null);
   }
 
-  const NAV_TABS: { id: Page; label: string }[] = [
-    { id: 'portfolio', label: '포트폴리오' },
+  const SUB_PAGES: { id: Page; label: string }[] = [
+    { id: 'portfolio', label: '보유현황' },
     { id: 'history', label: '(임시) 계좌 수익률' },
   ];
 
@@ -104,17 +104,26 @@ export default function App() {
         onRefreshRate={refreshRate}
       />
 
-      {/* Page navigation */}
+      {/* Primary navigation - main sections */}
       <nav className="bg-[#1a1d2e] border-b border-[#2e3151]">
         <div className="max-w-7xl mx-auto px-4 flex">
-          {NAV_TABS.map(tab => (
+          <button className="px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-white whitespace-nowrap">
+            포트폴리오
+          </button>
+        </div>
+      </nav>
+
+      {/* Secondary navigation - sub pages */}
+      <nav className="bg-[#0f1117] border-b border-[#2e3151]">
+        <div className="max-w-7xl mx-auto px-4 flex">
+          {SUB_PAGES.map(tab => (
             <button
               key={tab.id}
               onClick={() => setPage(tab.id)}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 page === tab.id
-                  ? 'border-blue-500 text-white'
-                  : 'border-transparent text-gray-400 hover:text-white hover:border-gray-600'
+                  ? 'border-blue-400 text-blue-300'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
               {tab.label}
