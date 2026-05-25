@@ -107,7 +107,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
   type ColDef = {
     label: string;
     sortKey?: SortKey;
-    align?: 'left' | 'right';
+    align?: 'left' | 'center' | 'right';
     renderCell: (stock: StockWithStats) => React.ReactNode;
   };
 
@@ -122,9 +122,9 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     },
     avgCost: {
       label: '평균금액 / 현재금액',
-      align: 'left',
+      align: 'center',
       renderCell: stock => (
-        <td className="px-4 py-3 text-left tabular-nums whitespace-nowrap">
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap">
           <div className="text-white">{fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}</div>
           <div className="text-gray-500 text-xs mt-0.5">{fmtVal(stock.currency === 'USD' ? stock.currentPrice * usdToKrw : stock.currentPrice)}</div>
         </td>
@@ -217,14 +217,14 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     onDragOver={e => handleColDragOver(e, col)}
                     onDrop={e => handleColDrop(e, col)}
                     onDragEnd={clearColDrag}
-                    className={`relative ${def.align === 'left' ? 'text-left' : 'text-right'} px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap select-none transition-opacity ${
+                    className={`relative ${def.align === 'left' ? 'text-left' : def.align === 'center' ? 'text-center' : 'text-right'} px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap select-none transition-opacity ${
                       isDragging ? 'opacity-30' : ''
                     } ${isDragOver ? 'bg-blue-500/10' : ''}`}
                   >
                     {isDragOver && (
                       <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-400 rounded-full" />
                     )}
-                    <div className={`flex items-center ${def.align === 'left' ? 'justify-start' : 'justify-end'} gap-1 group`}>
+                    <div className={`flex items-center ${def.align === 'left' ? 'justify-start' : def.align === 'center' ? 'justify-center' : 'justify-end'} gap-1 group`}>
                       <GripVertical
                         size={11}
                         className="text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
