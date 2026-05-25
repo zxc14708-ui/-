@@ -99,7 +99,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
 
   if (snapshots.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-screen-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h2 className="text-lg font-semibold text-white">(임시) 계좌 수익률</h2>
           <button
@@ -128,7 +128,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>

@@ -106,7 +106,7 @@ export default function App() {
 
       {/* Primary navigation */}
       <div className="bg-[#0b0e1a] border-b border-[#1e2240]">
-        <div className="max-w-7xl mx-auto px-4 flex items-center h-11">
+        <div className="max-w-screen-2xl mx-auto px-4 flex items-center h-11">
           <span className="inline-flex items-center gap-2 px-4 h-full text-sm font-bold text-white border-b-2 border-blue-500">
             📊 포트폴리오
           </span>
@@ -115,7 +115,7 @@ export default function App() {
 
       {/* Secondary navigation */}
       <div className="bg-[#13162a] border-b border-[#2e3151]">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 h-10">
+        <div className="max-w-screen-2xl mx-auto px-4 flex items-center gap-1 h-10">
           {SUB_PAGES.map(tab => (
             <button
               key={tab.id}
@@ -134,7 +134,7 @@ export default function App() {
 
       {/* Portfolio page */}
       {page === 'portfolio' && (
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+        <div className="max-w-screen-2xl mx-auto px-4 py-6 space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
