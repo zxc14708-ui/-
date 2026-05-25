@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -40,7 +40,16 @@ function dateLabel(date: string, period: Period): string {
 export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurrency, usdToKrw }: Props) {
   const [period, setPeriod] = useState<Period>('day');
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [savedMsg, setSavedMsg] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fmt = (v: number) => fmtAmountFull(v, displayCurrency, usdToKrw);
+
+  const handleSave = useCallback(() => {
+    onTakeSnapshot();
+    setSavedMsg(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedMsg(false), 2000);
+  }, [onTakeSnapshot]);
 
   function toggleAccount(id: string) {
     setHiddenIds(prev => {
@@ -103,11 +112,11 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h2 className="text-lg font-semibold text-white">(임시) 계좌 수익률</h2>
           <button
-            onClick={onTakeSnapshot}
+            onClick={handleSave}
             className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
           >
             <Camera size={14} />
-            지금 저장
+            {savedMsg ? '저장됨 ✓' : '지금 저장'}
           </button>
         </div>
         <div className="bg-[#1a1d2e] border border-dashed border-[#2e3151] rounded-xl p-16 text-center">
@@ -117,10 +126,10 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             매일 오전 6시에 자동 저장됩니다 (앱이 열려있을 때만 동작)
           </p>
           <button
-            onClick={onTakeSnapshot}
+            onClick={handleSave}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-colors"
           >
-            지금 저장해보기
+            {savedMsg ? '저장됨 ✓' : '지금 저장해보기'}
           </button>
         </div>
       </div>
@@ -157,11 +166,15 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             ))}
           </div>
           <button
-            onClick={onTakeSnapshot}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1d2e] border border-[#2e3151] hover:border-gray-500 rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
+            onClick={handleSave}
+            className={`flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1d2e] border rounded-lg text-xs transition-colors ${
+              savedMsg
+                ? 'border-emerald-600 text-emerald-400'
+                : 'border-[#2e3151] hover:border-gray-500 text-gray-400 hover:text-white'
+            }`}
           >
             <Camera size={12} />
-            지금 저장
+            {savedMsg ? '저장됨 ✓' : '지금 저장'}
           </button>
         </div>
       </div>
