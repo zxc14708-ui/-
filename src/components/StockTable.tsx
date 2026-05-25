@@ -16,11 +16,11 @@ interface Props {
 }
 
 type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossKrw' | 'gainLossPct' | 'quantity' | 'weightPct';
-type ColKey = 'quantity' | 'avgCost' | 'currentPrice' | 'marketValueKrw' | 'weightPct' | 'gainLossKrw' | 'gainLossPct';
+type ColKey = 'quantity' | 'avgCost' | 'marketValueKrw' | 'weightPct' | 'gainLossKrw' | 'gainLossPct';
 type Dir = 'asc' | 'desc';
 
-const DEFAULT_COL_ORDER: ColKey[] = ['quantity', 'avgCost', 'currentPrice', 'marketValueKrw', 'weightPct', 'gainLossKrw', 'gainLossPct'];
-const COL_ORDER_KEY = 'portfolio_col_order_v2';
+const DEFAULT_COL_ORDER: ColKey[] = ['quantity', 'avgCost', 'marketValueKrw', 'weightPct', 'gainLossKrw', 'gainLossPct'];
+const COL_ORDER_KEY = 'portfolio_col_order_v3';
 
 function loadColOrder(): ColKey[] {
   try {
@@ -120,18 +120,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
       ),
     },
     avgCost: {
-      label: '평균금액',
+      label: '평균금액 / 현재금액',
       renderCell: stock => (
-        <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
-          {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
-        </td>
-      ),
-    },
-    currentPrice: {
-      label: '현재금액',
-      renderCell: stock => (
-        <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
-          {fmtVal(stock.currency === 'USD' ? stock.currentPrice * usdToKrw : stock.currentPrice)}
+        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+          <div className="text-white">{fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}</div>
+          <div className="text-gray-500 text-xs mt-0.5">{fmtVal(stock.currency === 'USD' ? stock.currentPrice * usdToKrw : stock.currentPrice)}</div>
         </td>
       ),
     },
