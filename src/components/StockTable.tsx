@@ -15,7 +15,7 @@ interface Props {
   usdToKrw: number;
 }
 
-type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossPct' | 'quantity' | 'weightPct';
+type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossKrw' | 'gainLossPct' | 'quantity' | 'weightPct';
 type Dir = 'asc' | 'desc';
 
 export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
@@ -88,8 +88,13 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                 </button>
               </th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+                <button onClick={() => toggleSort('gainLossKrw')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
+                  평가손익 <SortIcon k="gainLossKrw" />
+                </button>
+              </th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
                 <button onClick={() => toggleSort('gainLossPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
-                  평가손익 <SortIcon k="gainLossPct" />
+                  수익률 <SortIcon k="gainLossPct" />
                 </button>
               </th>
               <th className="px-4 py-3 w-1"></th>
@@ -164,9 +169,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.gainLossKrw >= 0 ? '+' : ''}{fmtVal(stock.gainLossKrw)}
                     </span>
-                    <div className={`text-xs ${stock.gainLossPct >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    <span className={`font-semibold ${stock.gainLossPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.gainLossPct >= 0 ? '+' : ''}{stock.gainLossPct.toFixed(2)}%
-                    </div>
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
