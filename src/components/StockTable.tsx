@@ -65,34 +65,34 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
               {!selectedAccountId && (
                 <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-1">계좌</th>
               )}
-              <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-full">
                 <button onClick={() => toggleSort('nameKo')} className="flex items-center gap-1 hover:text-gray-300">
                   종목명 <SortIcon k="nameKo" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">수량</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">평균금액</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">수량</th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">평균금액</th>
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('changeRate')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   등락률 <SortIcon k="changeRate" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('marketValueKrw')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   평가금액 <SortIcon k="marketValueKrw" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('weightPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   비중 <SortIcon k="weightPct" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('gainLossKrw')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   평가손익 <SortIcon k="gainLossKrw" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">
+              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('gainLossPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   수익률 <SortIcon k="gainLossPct" />
                 </button>
@@ -121,19 +121,19 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                       />
                     </td>
                   )}
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="text-white font-medium">{stock.nameKo}</div>
-                      <div className="text-gray-500 text-xs font-mono">{stock.ticker} · {stock.market}</div>
+                  <td className="px-4 py-3 max-w-0 w-full">
+                    <div className="overflow-hidden">
+                      <div className="text-white font-medium truncate">{stock.nameKo}</div>
+                      <div className="text-gray-500 text-xs font-mono truncate">{stock.ticker} · {stock.market}</div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
+                  <td className="px-4 py-3 text-right text-gray-300 tabular-nums whitespace-nowrap">
                     {stock.quantity.toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-right text-white tabular-nums">
+                  <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
                     {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     <span className={`inline-flex items-center gap-0.5 font-semibold ${stock.changeRate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.changeRate >= 0 ? '▲' : '▼'}
                       {Math.abs(stock.changeRate).toFixed(2)}%
@@ -145,10 +145,10 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                         : `₩${Math.round(stock.changeAmt).toLocaleString()}`}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-white tabular-nums">
+                  <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
                     {fmtVal(stock.marketValueKrw)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     {totalFilteredValue > 0 ? (
                       <>
                         <div className="text-gray-300 text-sm">
@@ -165,12 +165,12 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                       <span className="text-gray-600">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.gainLossKrw >= 0 ? '+' : ''}{fmtVal(stock.gainLossKrw)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     <span className={`font-semibold ${stock.gainLossPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.gainLossPct >= 0 ? '+' : ''}{stock.gainLossPct.toFixed(2)}%
                     </span>
