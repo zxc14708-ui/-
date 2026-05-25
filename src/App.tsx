@@ -46,7 +46,7 @@ export default function App() {
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
     usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
 
-  const { snapshots, takeSnapshot } = useSnapshots(stocks, accounts, rate.usdToKrw);
+  const { snapshots, takeSnapshot } = useSnapshots(stocks, accounts, rate.usdToKrw, lastUpdated !== null);
 
   const [page, setPage] = useState<Page>('portfolio');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
