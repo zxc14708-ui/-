@@ -105,16 +105,16 @@ export default function App() {
       />
 
       {/* Page navigation */}
-      <nav className="bg-[#0f1117] border-b border-[#2e3151]">
-        <div className="max-w-7xl mx-auto px-4 flex gap-0">
+      <nav className="bg-[#1a1d2e] border-b border-[#2e3151]">
+        <div className="max-w-7xl mx-auto px-4 flex">
           {NAV_TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setPage(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 page === tab.id
                   ? 'border-blue-500 text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
+                  : 'border-transparent text-gray-400 hover:text-white hover:border-gray-600'
               }`}
             >
               {tab.label}
