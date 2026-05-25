@@ -1,39 +1,44 @@
-const CACHE = 'portfolio-v1';
-const PRECACHE = [
-  '/-/',
-  '/-/index.html',
-];
+const CACHE = 'portfolio-v2'; // bumped to bust old v1 cache
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
-  );
+  e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
-  // Only handle GET requests for same-origin assets
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // Let API/proxy requests pass through uncached
-  if (!url.origin.includes(self.location.origin)) return;
+  if (url.origin !== self.location.origin) return;
+  if (!url.pathname.startsWith('/-/')) return;
 
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fresh = fetch(e.request).then(res => {
-        if (res.ok && url.pathname.startsWith('/-/')) {
-          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached ?? fresh;
-    })
-  );
+  // JS/CSS assets have content hashes → cache-first (safe, immutable)
+  // HTML → network-first so users always get the latest index.html
+  const isAsset = /\.(js|css|png|svg|ico|woff2?)(\?|$)/.test(url.pathname);
+
+  if (isAsset) {
+    e.respondWith(
+      caches.match(e.request).then(cached =>
+        cached ?? fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+      )
+    );
+  } else {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  }
 });
