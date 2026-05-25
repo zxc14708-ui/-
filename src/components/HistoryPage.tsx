@@ -39,7 +39,16 @@ function dateLabel(date: string, period: Period): string {
 
 export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurrency, usdToKrw }: Props) {
   const [period, setPeriod] = useState<Period>('day');
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const fmt = (v: number) => fmtAmountFull(v, displayCurrency, usdToKrw);
+
+  function toggleAccount(id: string) {
+    setHiddenIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   // Collect all unique account metadata across all snapshots (prefer current accounts)
   const allAccountInfo = useMemo(() => {
@@ -65,6 +74,8 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
     for (const snap of displaySnapshots) for (const a of snap.accounts) ids.add(a.id);
     return Array.from(ids);
   }, [displaySnapshots]);
+
+  const visibleAccountIds = chartAccountIds.filter(id => !hiddenIds.has(id));
 
   const chartData = useMemo(() =>
     displaySnapshots.map(snap => {
@@ -196,7 +207,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 10 }}>
                 <defs>
-                  {chartAccountIds.map(id => {
+                  {visibleAccountIds.map(id => {
                     const color = allAccountInfo.get(id)?.color ?? '#6366f1';
                     return (
                       <linearGradient key={id} id={`grad-${id}`} x1="0" y1="0" x2="0" y2="1">
@@ -232,7 +243,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                     allAccountInfo.get(String(name ?? ''))?.name ?? String(name ?? ''),
                   ]}
                 />
-                {chartAccountIds.map(id => {
+                {visibleAccountIds.map(id => {
                   const color = allAccountInfo.get(id)?.color ?? '#6366f1';
                   return (
                     <Area
@@ -250,15 +261,30 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             </ResponsiveContainer>
           )}
         </div>
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-[#2e3151]">
+        {/* Legend with checkboxes */}
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#2e3151]">
           {chartAccountIds.map(id => {
             const info = allAccountInfo.get(id);
+            const visible = !hiddenIds.has(id);
             return (
-              <div key={id} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: info?.color }} />
-                <span className="text-gray-400 text-xs">{info?.name}</span>
-              </div>
+              <button
+                key={id}
+                onClick={() => toggleAccount(id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors text-xs ${
+                  visible
+                    ? 'border-[#3e4265] bg-[#2a2d45] text-gray-200'
+                    : 'border-[#2e3151] bg-transparent text-gray-600'
+                }`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0 transition-opacity"
+                  style={{ background: info?.color, opacity: visible ? 1 : 0.25 }}
+                />
+                <span>{info?.name}</span>
+                <span className={`ml-0.5 transition-opacity ${visible ? 'opacity-60' : 'opacity-30'}`}>
+                  {visible ? '✓' : '—'}
+                </span>
+              </button>
             );
           })}
         </div>
@@ -271,7 +297,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             <thead>
               <tr className="border-b border-[#2e3151]">
                 <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs">날짜</th>
-                {chartAccountIds.map(id => (
+                {visibleAccountIds.map(id => (
                   <th key={id} className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                     <span
                       className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle"
@@ -304,7 +330,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                     <td className="px-4 py-2.5 text-gray-300 text-xs tabular-nums whitespace-nowrap">
                       {period === 'day' ? snap.date : dateLabel(snap.date, period)}
                     </td>
-                    {chartAccountIds.map(id => {
+                    {visibleAccountIds.map(id => {
                       const a = snap.accounts.find(x => x.id === id);
                       return (
                         <td key={id} className="px-4 py-2.5 text-right text-white text-xs tabular-nums">
