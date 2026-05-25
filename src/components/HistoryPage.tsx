@@ -227,9 +227,9 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                     borderRadius: 8, fontSize: 12,
                   }}
                   labelStyle={{ color: '#9ca3af', marginBottom: 4 }}
-                  formatter={(value: number, name: string) => [
-                    fmt(value),
-                    allAccountInfo.get(name)?.name ?? name,
+                  formatter={(value, name) => [
+                    fmt(Number(value ?? 0)),
+                    allAccountInfo.get(String(name ?? ''))?.name ?? String(name ?? ''),
                   ]}
                 />
                 {chartAccountIds.map(id => {
