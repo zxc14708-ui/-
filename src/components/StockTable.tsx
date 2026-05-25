@@ -63,7 +63,7 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
           <thead>
             <tr className="border-b border-[#2e3151]">
               {!selectedAccountId && (
-                <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-1">계좌</th>
+                <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">계좌</th>
               )}
               <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-full">
                 <button onClick={() => toggleSort('nameKo')} className="flex items-center gap-1 hover:text-gray-300">
