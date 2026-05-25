@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle } from 'lucide-react';
+import { useState, Fragment } from 'react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -16,12 +16,33 @@ interface Props {
 }
 
 type SortKey = 'nameKo' | 'ticker' | 'marketValueKrw' | 'changeRate' | 'gainLossKrw' | 'gainLossPct' | 'quantity' | 'weightPct';
+type ColKey = 'quantity' | 'avgCost' | 'marketValueKrw' | 'weightPct' | 'gainLossKrw' | 'gainLossPct';
 type Dir = 'asc' | 'desc';
+
+const DEFAULT_COL_ORDER: ColKey[] = ['quantity', 'avgCost', 'marketValueKrw', 'weightPct', 'gainLossKrw', 'gainLossPct'];
+const COL_ORDER_KEY = 'portfolio_col_order_v1';
+
+function loadColOrder(): ColKey[] {
+  try {
+    const v = localStorage.getItem(COL_ORDER_KEY);
+    if (!v) return DEFAULT_COL_ORDER;
+    const parsed = JSON.parse(v);
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === DEFAULT_COL_ORDER.length &&
+      parsed.every((k: unknown) => (DEFAULT_COL_ORDER as string[]).includes(k as string))
+    ) return parsed as ColKey[];
+  } catch {}
+  return DEFAULT_COL_ORDER;
+}
 
 export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
   const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
+  const [colOrder, setColOrder] = useState<ColKey[]>(loadColOrder);
+  const [dragCol, setDragCol] = useState<ColKey | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<ColKey | null>(null);
 
   const filtered = selectedAccountId
     ? stocks.filter(s => s.accountId === selectedAccountId)
@@ -56,6 +77,112 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     return accounts.find(a => a.id === id)?.name ?? id;
   }
 
+  function handleColDragStart(e: React.DragEvent, col: ColKey) {
+    setDragCol(col);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleColDragOver(e: React.DragEvent, col: ColKey) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (col !== dragCol) setDragOverCol(col);
+  }
+
+  function handleColDrop(e: React.DragEvent, targetCol: ColKey) {
+    e.preventDefault();
+    if (!dragCol || dragCol === targetCol) { clearColDrag(); return; }
+    const next = [...colOrder];
+    next.splice(next.indexOf(dragCol), 1);
+    next.splice(next.indexOf(targetCol), 0, dragCol);
+    setColOrder(next);
+    localStorage.setItem(COL_ORDER_KEY, JSON.stringify(next));
+    clearColDrag();
+  }
+
+  function clearColDrag() {
+    setDragCol(null);
+    setDragOverCol(null);
+  }
+
+  type ColDef = {
+    label: string;
+    sortKey?: SortKey;
+    renderCell: (stock: StockWithStats) => React.ReactNode;
+  };
+
+  const colDefs: Record<ColKey, ColDef> = {
+    quantity: {
+      label: '수량',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right text-gray-300 tabular-nums whitespace-nowrap">
+          {stock.quantity.toLocaleString()}
+        </td>
+      ),
+    },
+    avgCost: {
+      label: '평균금액',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
+          {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
+        </td>
+      ),
+    },
+    marketValueKrw: {
+      label: '평가금액',
+      sortKey: 'marketValueKrw',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
+          {fmtVal(stock.marketValueKrw)}
+        </td>
+      ),
+    },
+    weightPct: {
+      label: '비중',
+      sortKey: 'weightPct',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+          {totalFilteredValue > 0 ? (
+            <>
+              <div className="text-gray-300 text-sm">
+                {((stock.marketValueKrw / totalFilteredValue) * 100).toFixed(1)}%
+              </div>
+              <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-500 opacity-70"
+                  style={{ width: `${Math.min((stock.marketValueKrw / totalFilteredValue) * 100, 100)}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <span className="text-gray-600">—</span>
+          )}
+        </td>
+      ),
+    },
+    gainLossKrw: {
+      label: '평가손익',
+      sortKey: 'gainLossKrw',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+          <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {stock.gainLossKrw >= 0 ? '+' : ''}{fmtVal(stock.gainLossKrw)}
+          </span>
+        </td>
+      ),
+    },
+    gainLossPct: {
+      label: '수익률',
+      sortKey: 'gainLossPct',
+      renderCell: stock => (
+        <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+          <span className={`font-semibold ${stock.gainLossPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {stock.gainLossPct >= 0 ? '+' : ''}{stock.gainLossPct.toFixed(2)}%
+          </span>
+        </td>
+      ),
+    },
+  };
+
   return (
     <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
@@ -70,34 +197,50 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   종목명 <SortIcon k="nameKo" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">수량</th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">평균금액</th>
               <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
                 <button onClick={() => toggleSort('changeRate')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
                   등락률 <SortIcon k="changeRate" />
                 </button>
               </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
-                <button onClick={() => toggleSort('marketValueKrw')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
-                  평가금액 <SortIcon k="marketValueKrw" />
-                </button>
-              </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
-                <button onClick={() => toggleSort('weightPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
-                  비중 <SortIcon k="weightPct" />
-                </button>
-              </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
-                <button onClick={() => toggleSort('gainLossKrw')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
-                  평가손익 <SortIcon k="gainLossKrw" />
-                </button>
-              </th>
-              <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
-                <button onClick={() => toggleSort('gainLossPct')} className="flex items-center gap-1 hover:text-gray-300 ml-auto">
-                  수익률 <SortIcon k="gainLossPct" />
-                </button>
-              </th>
-              <th className="px-4 py-3 w-1"></th>
+              {colOrder.map(col => {
+                const def = colDefs[col];
+                const isDragging = dragCol === col;
+                const isDragOver = dragOverCol === col;
+                return (
+                  <th
+                    key={col}
+                    draggable
+                    onDragStart={e => handleColDragStart(e, col)}
+                    onDragOver={e => handleColDragOver(e, col)}
+                    onDrop={e => handleColDrop(e, col)}
+                    onDragEnd={clearColDrag}
+                    className={`relative text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap select-none transition-opacity ${
+                      isDragging ? 'opacity-30' : ''
+                    } ${isDragOver ? 'bg-blue-500/10' : ''}`}
+                  >
+                    {isDragOver && (
+                      <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-400 rounded-full" />
+                    )}
+                    <div className="flex items-center justify-end gap-1 group">
+                      <GripVertical
+                        size={11}
+                        className="text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
+                      />
+                      {def.sortKey ? (
+                        <button
+                          onClick={() => def.sortKey && toggleSort(def.sortKey)}
+                          className="flex items-center gap-1 hover:text-gray-300"
+                        >
+                          {def.label} <SortIcon k={def.sortKey} />
+                        </button>
+                      ) : (
+                        <span>{def.label}</span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
+              <th className="px-4 py-3 w-1" />
             </tr>
           </thead>
           <tbody>
@@ -127,12 +270,6 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                       <div className="text-gray-500 text-xs font-mono truncate">{stock.ticker} · {stock.market}</div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-300 tabular-nums whitespace-nowrap">
-                    {stock.quantity.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
-                    {fmtVal(stock.currency === 'USD' ? stock.avgCost * usdToKrw : stock.avgCost)}
-                  </td>
                   <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     <span className={`inline-flex items-center gap-0.5 font-semibold ${stock.changeRate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {stock.changeRate >= 0 ? '▲' : '▼'}
@@ -145,36 +282,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                         : `₩${Math.round(stock.changeAmt).toLocaleString()}`}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
-                    {fmtVal(stock.marketValueKrw)}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                    {totalFilteredValue > 0 ? (
-                      <>
-                        <div className="text-gray-300 text-sm">
-                          {((stock.marketValueKrw / totalFilteredValue) * 100).toFixed(1)}%
-                        </div>
-                        <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-blue-500 opacity-70"
-                            style={{ width: `${Math.min((stock.marketValueKrw / totalFilteredValue) * 100, 100)}%` }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-gray-600">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                    <span className={`font-semibold ${stock.gainLossKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {stock.gainLossKrw >= 0 ? '+' : ''}{fmtVal(stock.gainLossKrw)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                    <span className={`font-semibold ${stock.gainLossPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {stock.gainLossPct >= 0 ? '+' : ''}{stock.gainLossPct.toFixed(2)}%
-                    </span>
-                  </td>
+                  {colOrder.map(col => (
+                    <Fragment key={col}>
+                      {colDefs[col].renderCell(stock)}
+                    </Fragment>
+                  ))}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button
