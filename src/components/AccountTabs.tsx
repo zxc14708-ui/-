@@ -119,7 +119,7 @@ export function AccountTabs({
           }`}
         >
           <div>전체 계좌</div>
-          <div className="text-xs opacity-75 tabular-nums">{fmt(totalValue)}</div>
+          <div className="text-xs opacity-75 tabular-nums whitespace-nowrap">{fmt(totalValue)}</div>
         </button>
 
         {accounts.map(acc => {
@@ -169,7 +169,7 @@ export function AccountTabs({
                     <span>{acc.name}</span>
                   )}
                 </div>
-                <div className="flex gap-2 text-xs opacity-75 tabular-nums mt-0.5">
+                <div className="flex gap-2 text-xs opacity-75 tabular-nums mt-0.5 whitespace-nowrap">
                   <span>{fmt(val)}</span>
                   {cnt > 0 && (
                     <span className={gl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
