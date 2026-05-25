@@ -112,14 +112,14 @@ export function AccountTabs({
         {/* 전체 계좌 탭 */}
         <button
           onClick={() => onSelect(null)}
-          className={`flex-shrink-0 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+          className={`flex-shrink-0 px-4 py-2 rounded-xl border text-sm font-medium transition-all whitespace-nowrap ${
             selected === null
               ? 'bg-blue-600 border-blue-500 text-white'
               : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
           }`}
         >
-          <div>전체 계좌</div>
-          <div className="text-xs opacity-75 tabular-nums whitespace-nowrap">{fmt(totalValue)}</div>
+          전체 계좌
+          <span className="text-xs opacity-75 tabular-nums ml-2">{fmt(totalValue)}</span>
         </button>
 
         {accounts.map(acc => {
@@ -148,7 +148,7 @@ export function AccountTabs({
 
               <button
                 onClick={() => { if (!isEditing) onSelect(acc.id); }}
-                className={`flex-shrink-0 pl-7 pr-8 py-2 rounded-xl border text-sm font-medium transition-all text-left w-full ${
+                className={`flex-shrink-0 pl-7 pr-8 py-2 rounded-xl border text-sm font-medium transition-all text-left w-full whitespace-nowrap ${
                   isSelected ? 'text-white' : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
                 }`}
                 style={isSelected ? { background: acc.color + '33', borderColor: acc.color } : {}}
@@ -168,15 +168,15 @@ export function AccountTabs({
                   ) : (
                     <span>{acc.name}</span>
                   )}
-                </div>
-                <div className="flex gap-2 text-xs opacity-75 tabular-nums mt-0.5 whitespace-nowrap">
-                  <span>{fmt(val)}</span>
-                  {cnt > 0 && (
-                    <span className={gl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                      {gl >= 0 ? '+' : ''}{fmt(gl)}
-                    </span>
-                  )}
-                  <span className="text-gray-600">{cnt}종목</span>
+                  <span className="flex gap-2 text-xs opacity-75 tabular-nums">
+                    <span>{fmt(val)}</span>
+                    {cnt > 0 && (
+                      <span className={gl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        {gl >= 0 ? '+' : ''}{fmt(gl)}
+                      </span>
+                    )}
+                    <span className="text-gray-600">{cnt}종목</span>
+                  </span>
                 </div>
               </button>
 
