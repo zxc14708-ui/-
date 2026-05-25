@@ -104,33 +104,33 @@ export default function App() {
         onRefreshRate={refreshRate}
       />
 
-      {/* Primary navigation - main sections */}
-      <nav className="bg-[#1a1d2e] border-b border-[#2e3151]">
-        <div className="max-w-7xl mx-auto px-4 flex">
-          <button className="px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-white whitespace-nowrap">
-            포트폴리오
-          </button>
+      {/* Primary navigation */}
+      <div className="bg-[#0b0e1a] border-b border-[#1e2240]">
+        <div className="max-w-7xl mx-auto px-4 flex items-center h-11">
+          <span className="inline-flex items-center gap-2 px-4 h-full text-sm font-bold text-white border-b-2 border-blue-500">
+            📊 포트폴리오
+          </span>
         </div>
-      </nav>
+      </div>
 
-      {/* Secondary navigation - sub pages */}
-      <nav className="bg-[#0f1117] border-b border-[#2e3151]">
-        <div className="max-w-7xl mx-auto px-4 flex">
+      {/* Secondary navigation */}
+      <div className="bg-[#13162a] border-b border-[#2e3151]">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 h-10">
           {SUB_PAGES.map(tab => (
             <button
               key={tab.id}
               onClick={() => setPage(tab.id)}
-              className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`px-4 h-full text-xs font-medium transition-all border-b-2 whitespace-nowrap ${
                 page === tab.id
-                  ? 'border-blue-400 text-blue-300'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
+                  ? 'border-blue-400 text-white bg-blue-500/10'
+                  : 'border-transparent text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-      </nav>
+      </div>
 
       {/* Portfolio page */}
       {page === 'portfolio' && (
