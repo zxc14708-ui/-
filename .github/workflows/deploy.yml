@@ -24,7 +24,6 @@ jobs:
           workingDirectory: worker
 
   build-and-deploy:
-    needs: deploy-worker
     runs-on: ubuntu-latest
     environment:
       name: github-pages
