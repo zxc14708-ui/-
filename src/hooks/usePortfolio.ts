@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getPrevClose } from '../data/mockData';
 import type { Stock, Account, StockWithStats } from '../types';
 import type { LivePrice } from '../utils/yahooFinance';
 
@@ -45,7 +44,7 @@ export function usePortfolio(usdToKrw: number) {
     stocks.map((s, i) => {
       const live = liveData[s.id];
       const currentPrice = live?.price ?? s.currentPrice;
-      const prevClose = live?.prevClose ?? getPrevClose(currentPrice, i + 1);
+      const prevClose = live?.prevClose ?? currentPrice;
       const changeRate = prevClose !== 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
       const changeAmt = currentPrice - prevClose;
       const multiplier = s.currency === 'USD' ? usdToKrw : 1;
