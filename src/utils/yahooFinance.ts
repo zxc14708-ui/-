@@ -36,15 +36,30 @@ async function fetchNaver(stock: Stock): Promise<{ id: string; price: number; pr
 
 async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
   const symbol = toYahooTicker(stock.ticker, stock.market);
-  const url = proxy(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`);
+
+  // 1차: v8 chart (query2 → query1 순서로 시도)
+  for (const host of ['query2', 'query1']) {
+    try {
+      const url = proxy(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`);
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const meta = json.chart?.result?.[0]?.meta;
+      const price: number | undefined = meta?.regularMarketPrice;
+      if (price) return { id: stock.id, price, prevClose: meta.chartPreviousClose ?? price };
+    } catch {}
+  }
+
+  // 2차: v7 quote fallback (인증 없이도 비교적 안정적)
   try {
+    const url = proxy(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}&fields=regularMarketPrice,regularMarketPreviousClose`);
     const res = await fetch(url);
     if (!res.ok) return null;
     const json = await res.json();
-    const meta = json.chart?.result?.[0]?.meta;
-    const price: number | undefined = meta?.regularMarketPrice;
+    const q = json.quoteResponse?.result?.[0];
+    const price: number | undefined = q?.regularMarketPrice;
     if (!price) return null;
-    return { id: stock.id, price, prevClose: meta.chartPreviousClose ?? price };
+    return { id: stock.id, price, prevClose: q.regularMarketPreviousClose ?? price };
   } catch {
     return null;
   }
