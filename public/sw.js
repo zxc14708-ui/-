@@ -1,12 +1,12 @@
-const CACHE = 'portfolio-v5';
+const CACHE = 'portfolio-v6';
 
 self.addEventListener('install', e => {
-  console.log('[SW] installing portfolio-v5');
+  console.log('[SW] installing portfolio-v6');
   e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW] activating portfolio-v5');
+  console.log('[SW] activating portfolio-v6');
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
@@ -19,6 +19,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
   if (!url.pathname.startsWith('/-/')) return;
+  if (url.pathname.endsWith('/sw.js')) return;
 
   const isAsset = /\.(js|css|png|svg|ico|woff2?)(\?|$)/.test(url.pathname);
 
