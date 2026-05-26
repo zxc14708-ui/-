@@ -37,32 +37,50 @@ async function fetchNaver(stock: Stock): Promise<{ id: string; price: number; pr
 async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
   const symbol = toYahooTicker(stock.ticker, stock.market);
 
-  // 1차: v8 chart (query2 → query1 순서로 시도)
+  // 1차: v8 chart (query2 → query1)
   for (const host of ['query2', 'query1']) {
     try {
       const url = proxy(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`);
       const res = await fetch(url);
-      if (!res.ok) continue;
+      if (!res.ok) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → HTTP ${res.status}`); continue; }
       const json = await res.json();
       const meta = json.chart?.result?.[0]?.meta;
       const price: number | undefined = meta?.regularMarketPrice;
       if (price) return { id: stock.id, price, prevClose: meta.chartPreviousClose ?? price };
-    } catch {}
+      console.warn(`[yahoo] ${symbol} ${host} v8/chart → no price, response:`, JSON.stringify(json).slice(0, 200));
+    } catch (e) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → exception:`, e); }
   }
 
-  // 2차: v7 quote fallback (인증 없이도 비교적 안정적)
+  // 2차: v7 quote
   try {
     const url = proxy(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}&fields=regularMarketPrice,regularMarketPreviousClose`);
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const q = json.quoteResponse?.result?.[0];
-    const price: number | undefined = q?.regularMarketPrice;
-    if (!price) return null;
-    return { id: stock.id, price, prevClose: q.regularMarketPreviousClose ?? price };
-  } catch {
-    return null;
-  }
+    if (!res.ok) { console.warn(`[yahoo] ${symbol} v7/quote → HTTP ${res.status}`); }
+    else {
+      const json = await res.json();
+      const q = json.quoteResponse?.result?.[0];
+      const price: number | undefined = q?.regularMarketPrice;
+      if (price) return { id: stock.id, price, prevClose: q.regularMarketPreviousClose ?? price };
+      console.warn(`[yahoo] ${symbol} v7/quote → no price, response:`, JSON.stringify(json).slice(0, 200));
+    }
+  } catch (e) { console.warn(`[yahoo] ${symbol} v7/quote → exception:`, e); }
+
+  // 3차: v8 quoteSummary
+  try {
+    const url = proxy(`https://query1.finance.yahoo.com/v8/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=price`);
+    const res = await fetch(url);
+    if (!res.ok) { console.warn(`[yahoo] ${symbol} v8/quoteSummary → HTTP ${res.status}`); }
+    else {
+      const json = await res.json();
+      const p = json.quoteSummary?.result?.[0]?.price;
+      const price: number | undefined = p?.regularMarketPrice?.raw;
+      if (price) return { id: stock.id, price, prevClose: p.regularMarketPreviousClose?.raw ?? price };
+      console.warn(`[yahoo] ${symbol} v8/quoteSummary → no price, response:`, JSON.stringify(json).slice(0, 200));
+    }
+  } catch (e) { console.warn(`[yahoo] ${symbol} v8/quoteSummary → exception:`, e); }
+
+  console.error(`[yahoo] ${symbol} 모든 엔드포인트 실패`);
+  return null;
 }
 
 export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, LivePrice>> {
