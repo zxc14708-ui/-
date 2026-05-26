@@ -1,4 +1,4 @@
-const CACHE = 'portfolio-v2'; // bumped to bust old v1 cache
+const CACHE = 'portfolio-v3';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());
@@ -26,7 +26,10 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(e.request).then(cached =>
         cached ?? fetch(e.request).then(res => {
-          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          if (res.ok) {
+            const cloned = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, cloned));
+          }
           return res;
         })
       )
@@ -35,7 +38,10 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(e.request)
         .then(res => {
-          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          if (res.ok) {
+            const cloned = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, cloned));
+          }
           return res;
         })
         .catch(() => caches.match(e.request))

@@ -211,7 +211,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
 
       {/* Chart */}
       <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-5">
-        <div className="h-64">
+        <div className="h-64 min-h-0">
           {chartData.length < 2 ? (
             <div className="h-full flex items-center justify-center text-gray-600 text-sm">
               차트를 표시하려면 데이터가 2개 이상 필요합니다
