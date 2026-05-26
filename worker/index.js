@@ -62,7 +62,7 @@ export default {
 
     // ── Finnhub: API 키 자동 추가 ─────────────────────────────────────────
     if (hostname === 'finnhub.io') {
-      const key = env.FINNHUB_API_KEY || 'd88ljlhr01qq4343lde0';
+      const key = env.FINNHUB_API_KEY || 'd88ljlhr01qq4343ldeg';
       const sep = fetchUrl.includes('?') ? '&' : '?';
       fetchUrl = `${fetchUrl}${sep}token=${key}`;
     }
