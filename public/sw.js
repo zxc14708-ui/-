@@ -1,12 +1,12 @@
-const CACHE = 'portfolio-v4';
+const CACHE = 'portfolio-v5';
 
 self.addEventListener('install', e => {
-  console.log('[SW] installing portfolio-v4');
+  console.log('[SW] installing portfolio-v5');
   e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
-  console.log('[SW] activating portfolio-v4');
+  console.log('[SW] activating portfolio-v5');
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
