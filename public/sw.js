@@ -1,10 +1,12 @@
-const CACHE = 'portfolio-v3';
+const CACHE = 'portfolio-v4';
 
 self.addEventListener('install', e => {
+  console.log('[SW] installing portfolio-v4');
   e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
+  console.log('[SW] activating portfolio-v4');
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
@@ -18,19 +20,17 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
   if (!url.pathname.startsWith('/-/')) return;
 
-  // JS/CSS assets have content hashes → cache-first (safe, immutable)
-  // HTML → network-first so users always get the latest index.html
   const isAsset = /\.(js|css|png|svg|ico|woff2?)(\?|$)/.test(url.pathname);
 
   if (isAsset) {
     e.respondWith(
-      caches.match(e.request).then(cached =>
-        cached ?? fetch(e.request).then(res => {
-          if (res.ok) {
-            const cloned = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, cloned));
-          }
-          return res;
+      caches.open(CACHE).then(cache =>
+        cache.match(e.request).then(cached => {
+          if (cached) return cached;
+          return fetch(e.request).then(res => {
+            if (res.ok) cache.put(e.request, res.clone());
+            return res;
+          });
         })
       )
     );
@@ -39,8 +39,8 @@ self.addEventListener('fetch', e => {
       fetch(e.request)
         .then(res => {
           if (res.ok) {
-            const cloned = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, cloned));
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
           }
           return res;
         })
