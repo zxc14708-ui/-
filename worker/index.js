@@ -62,7 +62,13 @@ export default {
 
     // ── Finnhub: API 키 자동 추가 ─────────────────────────────────────────
     if (hostname === 'finnhub.io') {
-      const key = env.FINNHUB_API_KEY || 'd88ljlhr01qq4343lde0d88ljlhr01qq4343ldeg';
+      const key = env.FINNHUB_API_KEY;
+      if (!key) {
+        return new Response(JSON.stringify({ error: 'FINNHUB_API_KEY not configured' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+        });
+      }
       const sep = fetchUrl.includes('?') ? '&' : '?';
       fetchUrl = `${fetchUrl}${sep}token=${key}`;
     }
