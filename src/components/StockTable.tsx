@@ -266,10 +266,19 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </td>
                   )}
                   <td className="px-4 py-3 max-w-0 w-full">
-                    <div className="overflow-hidden">
-                      <div className="text-white font-medium truncate">{stock.nameKo}</div>
+                    <a
+                      href={`https://finance.yahoo.com/quote/${
+                        stock.market === 'KRX' ? `${stock.ticker}.KS` :
+                        stock.market === 'KOSDAQ' ? `${stock.ticker}.KQ` :
+                        stock.ticker
+                      }`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden group"
+                    >
+                      <div className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">{stock.nameKo}</div>
                       <div className="text-gray-500 text-xs font-mono truncate">{stock.ticker} · {stock.market}</div>
-                    </div>
+                    </a>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                     <span className={`inline-flex items-center gap-0.5 font-semibold ${stock.changeRate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
