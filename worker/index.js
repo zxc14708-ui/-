@@ -62,13 +62,9 @@ export default {
 
     // ── Finnhub: API 키 자동 추가 ─────────────────────────────────────────
     if (hostname === 'finnhub.io') {
-      const key = env.FINNHUB_API_KEY ?? '';
-      if (key) {
-        const sep = fetchUrl.includes('?') ? '&' : '?';
-        fetchUrl = `${fetchUrl}${sep}token=${key}`;
-      } else {
-        console.warn('[proxy] FINNHUB_API_KEY 환경변수가 설정되지 않음');
-      }
+      const key = env.FINNHUB_API_KEY || 'd88ljlhr01qq4343lde0';
+      const sep = fetchUrl.includes('?') ? '&' : '?';
+      fetchUrl = `${fetchUrl}${sep}token=${key}`;
     }
 
     // ── 네이버: Referer 교체 ──────────────────────────────────────────────
