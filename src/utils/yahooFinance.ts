@@ -34,6 +34,19 @@ async function fetchNaver(stock: Stock): Promise<{ id: string; price: number; pr
   }
 }
 
+async function fetchFinnhub(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
+  const url = proxy(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(stock.ticker)}`);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) { console.warn(`[finnhub] ${stock.ticker} → HTTP ${res.status}`); return null; }
+    const d = await res.json();
+    const price: number = d.c;
+    const prevClose: number = d.pc;
+    if (!price || price === 0) { console.warn(`[finnhub] ${stock.ticker} → no price`); return null; }
+    return { id: stock.id, price, prevClose: prevClose || price };
+  } catch (e) { console.warn(`[finnhub] ${stock.ticker} → exception:`, e); return null; }
+}
+
 async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
   const symbol = toYahooTicker(stock.ticker, stock.market);
 
@@ -113,8 +126,21 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
     });
   }
 
+  // Finnhub for US stocks (primary), Yahoo as fallback
+  const finnhubFailed: Stock[] = [];
   for (let i = 0; i < us.length; i += CHUNK) {
-    const settled = await Promise.allSettled(us.slice(i, i + CHUNK).map(fetchYahoo));
+    const chunk = us.slice(i, i + CHUNK);
+    const settled = await Promise.allSettled(chunk.map(fetchFinnhub));
+    settled.forEach((r, idx) => {
+      if (r.status === 'fulfilled' && r.value)
+        result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });
+      else
+        finnhubFailed.push(chunk[idx]);
+    });
+  }
+
+  for (let i = 0; i < finnhubFailed.length; i += CHUNK) {
+    const settled = await Promise.allSettled(finnhubFailed.slice(i, i + CHUNK).map(fetchYahoo));
     settled.forEach(r => {
       if (r.status === 'fulfilled' && r.value)
         result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });
