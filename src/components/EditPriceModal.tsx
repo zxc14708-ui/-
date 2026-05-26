@@ -55,6 +55,7 @@ export function EditPriceModal({ stock, onConfirm, onClose }: Props) {
             <label className="text-gray-500 text-xs mb-1.5 block">현재가 ({symbol}) *</label>
             <input
               type="number"
+              name="current-price"
               min="0"
               step="any"
               value={price}

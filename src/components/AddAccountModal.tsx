@@ -35,6 +35,7 @@ export function AddAccountModal({ onAdd, onClose }: Props) {
           <div>
             <label className="text-gray-500 text-xs mb-1 block">계좌명 *</label>
             <input
+              name="account-name"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="예) 미래에셋 주계좌"
@@ -45,6 +46,7 @@ export function AddAccountModal({ onAdd, onClose }: Props) {
           <div>
             <label className="text-gray-500 text-xs mb-1 block">증권사 *</label>
             <select
+              name="broker"
               value={broker}
               onChange={e => setBroker(e.target.value)}
               className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500"
@@ -57,6 +59,7 @@ export function AddAccountModal({ onAdd, onClose }: Props) {
             <div>
               <label className="text-gray-500 text-xs mb-1 block">증권사명 직접입력 *</label>
               <input
+                name="custom-broker"
                 value={customBroker}
                 onChange={e => setCustomBroker(e.target.value)}
                 placeholder="증권사명 입력"

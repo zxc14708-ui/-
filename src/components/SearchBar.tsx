@@ -71,6 +71,7 @@ export function SearchBar({ stocks, onSelect }: Props) {
         <Search size={16} className="text-gray-500 flex-shrink-0" />
         <input
           ref={inputRef}
+          name="stock-search"
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}

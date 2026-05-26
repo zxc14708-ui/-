@@ -171,6 +171,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
                 <Search size={14} className="text-gray-500 flex-shrink-0" />
                 <input
                   ref={inputRef}
+                  name="stock-search"
                   value={query}
                   onChange={e => handleQueryChange(e.target.value)}
                   onFocus={() => query && setShowSuggestions(true)}
@@ -245,6 +246,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
             <label className="text-gray-500 text-xs mb-1.5 block">계좌 *</label>
             <div className="relative">
               <select
+                name="account-id"
                 value={accountId}
                 onChange={e => setAccountId(e.target.value)}
                 className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 appearance-none"
@@ -281,6 +283,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
           {/* 보유수량 */}
           <Field
             label="보유수량 *"
+            name="quantity"
             value={quantity} onChange={handleQuantityChange}
             placeholder="0" type="number" step="0.0000000001"
           />
@@ -293,6 +296,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
               </label>
               <input
                 type="text"
+                name="total-amount"
                 inputMode="numeric"
                 value={formatAmount(totalAmount)}
                 onChange={e => handleTotalAmountChange(e.target.value)}
@@ -315,6 +319,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
             /* 단가 직접 입력 */
             <Field
               label={`평균단가 * (${isUSD ? '$' : '₩'})`}
+              name="avg-cost"
               value={avgCost} onChange={handleAvgCostChange}
               placeholder="0" type="number" step="0.0000000001"
             />
@@ -342,8 +347,8 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text', step }: {
-  label: string; value: string; onChange: (v: string) => void;
+function Field({ label, name, value, onChange, placeholder, type = 'text', step }: {
+  label: string; name: string; value: string; onChange: (v: string) => void;
   placeholder?: string; type?: string; step?: string;
 }) {
   return (
@@ -351,6 +356,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', step }: {
       <label className="text-gray-500 text-xs mb-1.5 block leading-tight">{label}</label>
       <input
         type={type}
+        name={name}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}

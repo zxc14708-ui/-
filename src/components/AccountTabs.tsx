@@ -158,6 +158,7 @@ export function AccountTabs({
                   {isEditing ? (
                     <input
                       ref={editInputRef}
+                      name="account-name-edit"
                       value={editingName}
                       onChange={e => setEditingName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit(); }}

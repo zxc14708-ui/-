@@ -98,6 +98,7 @@ export function ExchangeRateBar({
             <form onSubmit={commitCustom} className="flex items-center gap-1">
               <input
                 type="number"
+                name="refresh-interval"
                 min="0.5"
                 step="0.5"
                 value={customVal}
@@ -116,6 +117,7 @@ export function ExchangeRateBar({
             </form>
           ) : (
             <select
+              name="refresh-preset"
               value={isPreset ? getSelectValue() : 'custom'}
               onChange={e => handleSelect(e.target.value)}
               className="bg-[#0f1117] border border-[#2e3151] rounded-lg px-2 py-0.5 text-xs text-gray-300 cursor-pointer outline-none hover:border-gray-500 transition-colors"

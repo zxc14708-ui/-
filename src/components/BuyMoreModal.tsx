@@ -61,6 +61,7 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
               <label className="text-gray-500 text-xs mb-1.5 block">추가 매수 수량 *</label>
               <input
                 type="number"
+                name="buy-quantity"
                 min="0"
                 value={qty}
                 onChange={e => setQty(e.target.value)}
@@ -73,6 +74,7 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
               <label className="text-gray-500 text-xs mb-1.5 block">매수 단가 * ({symbol})</label>
               <input
                 type="number"
+                name="buy-price"
                 min="0"
                 value={price}
                 onChange={e => setPrice(e.target.value)}
