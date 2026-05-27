@@ -358,6 +358,7 @@ export const STOCK_DB: StockEntry[] = [
   { ticker: 'SWKS', nameKo: '스카이웍스솔루션', nameEn: 'Skyworks Solutions Inc.', market: 'NASDAQ', currency: 'USD' },
   { ticker: 'QRVO', nameKo: '코르보', nameEn: 'Qorvo Inc.', market: 'NASDAQ', currency: 'USD' },
   { ticker: 'WDC', nameKo: '웨스턴디지털', nameEn: 'Western Digital Corp.', market: 'NASDAQ', currency: 'USD' },
+  { ticker: 'SNDK', nameKo: '샌디스크', nameEn: 'SanDisk Corp.', market: 'NASDAQ', currency: 'USD' },
   { ticker: 'STX', nameKo: '씨게이트테크놀로지', nameEn: 'Seagate Technology Holdings', market: 'NASDAQ', currency: 'USD' },
   { ticker: 'NTAP', nameKo: '넷앱', nameEn: 'NetApp Inc.', market: 'NASDAQ', currency: 'USD' },
   { ticker: 'PSTG', nameKo: '퓨어스토리지', nameEn: 'Pure Storage Inc.', market: 'NYSE', currency: 'USD' },
