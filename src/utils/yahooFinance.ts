@@ -46,7 +46,7 @@ async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; pr
       const json = await res.json();
       const meta = json.chart?.result?.[0]?.meta;
       const price: number | undefined = meta?.regularMarketPrice;
-      if (price) return { id: stock.id, price, prevClose: meta.chartPreviousClose ?? price };
+      if (price) return { id: stock.id, price, prevClose: meta.regularMarketPreviousClose ?? meta.chartPreviousClose ?? price };
       console.warn(`[yahoo] ${symbol} ${host} v8/chart → no price, response:`, JSON.stringify(json).slice(0, 200));
     } catch (e) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → exception:`, e); }
   }
