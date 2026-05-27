@@ -21,9 +21,9 @@ function todayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
-function msUntilNext6AM() {
+function msUntilNext10PM() {
   const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0, 0);
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
   if (now >= next) next.setDate(next.getDate() + 1);
   return next.getTime() - now.getTime();
 }
@@ -80,24 +80,24 @@ export function useSnapshots(
     });
   }, []);
 
-  // When prices first become ready: save today's snapshot if past 6am and not yet saved.
+  // When prices first become ready: save today's snapshot if past 22:00 and not yet saved.
   useEffect(() => {
     if (!pricesReady) return;
     const now = new Date();
-    const sixAM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0, 0);
-    if (now >= sixAM && !snapshotsRef.current.some(s => s.date === todayStr())) {
+    const tenPM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
+    if (now >= tenPM && !snapshotsRef.current.some(s => s.date === todayStr())) {
       takeSnapshot();
     }
   }, [pricesReady, takeSnapshot]);
 
-  // Schedule future 6am auto-saves via recursive setTimeout.
+  // Schedule future 22:00 auto-saves via recursive setTimeout.
   useEffect(() => {
     const timeoutRef = { id: 0 as ReturnType<typeof setTimeout> };
     function scheduleNext() {
       timeoutRef.id = setTimeout(() => {
         takeSnapshot();
         scheduleNext();
-      }, msUntilNext6AM());
+      }, msUntilNext10PM());
     }
     scheduleNext();
     return () => clearTimeout(timeoutRef.id);
