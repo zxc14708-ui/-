@@ -37,21 +37,7 @@ async function fetchNaver(stock: Stock): Promise<{ id: string; price: number; pr
 async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; prevClose: number } | null> {
   const symbol = toYahooTicker(stock.ticker, stock.market);
 
-  // 1차: v8 chart (query2 → query1)
-  for (const host of ['query2', 'query1']) {
-    try {
-      const url = proxy(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`);
-      const res = await fetch(url);
-      if (!res.ok) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → HTTP ${res.status}`); continue; }
-      const json = await res.json();
-      const meta = json.chart?.result?.[0]?.meta;
-      const price: number | undefined = meta?.regularMarketPrice;
-      if (price) return { id: stock.id, price, prevClose: meta.regularMarketPreviousClose ?? meta.chartPreviousClose ?? price };
-      console.warn(`[yahoo] ${symbol} ${host} v8/chart → no price, response:`, JSON.stringify(json).slice(0, 200));
-    } catch (e) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → exception:`, e); }
-  }
-
-  // 2차: v7 quote
+  // 1차: v7 quote — regularMarketPreviousClose를 직접 제공하므로 등락률 정확
   try {
     const url = proxy(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}&fields=regularMarketPrice,regularMarketPreviousClose`);
     const res = await fetch(url);
@@ -64,6 +50,25 @@ async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; pr
       console.warn(`[yahoo] ${symbol} v7/quote → no price, response:`, JSON.stringify(json).slice(0, 200));
     }
   } catch (e) { console.warn(`[yahoo] ${symbol} v7/quote → exception:`, e); }
+
+  // 2차: v8 chart (query2 → query1) — chartPreviousClose는 차트 범위 직전 종가이므로 폴백용
+  for (const host of ['query2', 'query1']) {
+    try {
+      const url = proxy(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`);
+      const res = await fetch(url);
+      if (!res.ok) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → HTTP ${res.status}`); continue; }
+      const json = await res.json();
+      const result = json.chart?.result?.[0];
+      const meta = result?.meta;
+      const price: number | undefined = meta?.regularMarketPrice;
+      if (!price) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → no price, response:`, JSON.stringify(json).slice(0, 200)); continue; }
+      // 바 데이터에서 직전 거래일 종가 추출 (chartPreviousClose보다 정확)
+      const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
+      const valid = closes.filter((c): c is number => c != null && isFinite(c));
+      const barPrevClose = valid.length >= 2 ? valid[valid.length - 2] : null;
+      return { id: stock.id, price, prevClose: barPrevClose ?? meta?.chartPreviousClose ?? price };
+    } catch (e) { console.warn(`[yahoo] ${symbol} ${host} v8/chart → exception:`, e); }
+  }
 
   // 3차: v8 quoteSummary
   try {
