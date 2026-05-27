@@ -137,6 +137,26 @@ const EXCHANGE_MAP: Record<string, Stock['market']> = {
   KOE: 'KOSDAQ', // KOSDAQ
 };
 
+// Naver 모바일에서 US 종목 한글명 조회
+export async function fetchKoreanName(ticker: string): Promise<string | null> {
+  try {
+    const res = await fetch(proxy(`https://m.stock.naver.com/api/search/all?keyword=${encodeURIComponent(ticker)}`));
+    if (!res.ok) return null;
+    const json = await res.json();
+    const stocks: Record<string, unknown>[] = json.stocks ?? [];
+    const norm = ticker.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const match = stocks.find(s => {
+      const code = String(s.symbolCode ?? s.itemCode ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      return code === norm;
+    }) ?? (stocks.length === 1 ? stocks[0] : null);
+    if (!match) return null;
+    const name = String(match.name ?? '');
+    return /[가-힣]/.test(name) ? name : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function searchYahooFinance(query: string): Promise<StockEntry[]> {
   const url = proxy(
     `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=15&newsCount=0&enableFuzzyQuery=false`
@@ -146,7 +166,7 @@ export async function searchYahooFinance(query: string): Promise<StockEntry[]> {
     if (!res.ok) return [];
     const json = await res.json();
     const quotes: Array<Record<string, string>> = json.quotes ?? [];
-    return quotes
+    const results = quotes
       .filter(q => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
       .map(q => {
         const symbol = q.symbol ?? '';
@@ -167,6 +187,15 @@ export async function searchYahooFinance(query: string): Promise<StockEntry[]> {
         const name = q.longname || q.shortname || symbol;
         return { ticker, nameKo: name, nameEn: name, market, currency };
       });
+
+    // US 종목 한글명 보강
+    return Promise.all(results.map(async stock => {
+      if (stock.market === 'NYSE' || stock.market === 'NASDAQ') {
+        const nameKo = await fetchKoreanName(stock.ticker);
+        if (nameKo) return { ...stock, nameKo };
+      }
+      return stock;
+    }));
   } catch {
     return [];
   }
