@@ -176,29 +176,45 @@ export function isKoreanQuery(query: string): boolean {
   return /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(query);
 }
 
-// 네이버 금융 자동완성 API — 한글 이름 검색용
+// 한글 종목 검색 — 3단계 폴백 체인
 export async function searchNaverFinance(query: string): Promise<StockEntry[]> {
-  const url = proxy(
-    `https://ac.finance.naver.com/ac?q=${encodeURIComponent(query)}&q_enc=UTF-8&st=111&r_format=json&r_enc=UTF-8&r_lt=111`
-  );
+  // 1차: Naver 모바일 검색 (가격 조회와 동일 호스트, 안정적)
   try {
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const json = await res.json();
-    // items[0]: 종목 목록, 각 항목 = [한글명, 종목코드, '', 타입, 시장, '']
-    // 타입: '1'=주식, '2'=지수(제외), '3'=선물/옵션(제외), '4'=ETF 등
-    const items: string[][] = json.items?.[0] ?? [];
-    return items
-      .filter(item => item[3] !== '2') // 지수 제외
-      .map(item => {
-        const nameKo = item[0] ?? '';
-        const ticker = item[1] ?? '';
-        const marketStr = (item[4] ?? '').toUpperCase();
-        const market: Stock['market'] = marketStr.includes('KOSDAQ') ? 'KOSDAQ' : 'KRX';
+    const res = await fetch(proxy(`https://m.stock.naver.com/api/search/all?keyword=${encodeURIComponent(query)}`));
+    if (res.ok) {
+      const json = await res.json();
+      const stocks: Record<string, unknown>[] = json.stocks ?? [];
+      const mapped = stocks.map(item => {
+        const ticker = String(item.itemCode ?? '');
+        const nameKo = String(item.name ?? '');
+        const code = String((item.stockExchangeType as Record<string, unknown>)?.code ?? '');
+        const market: Stock['market'] = code.toUpperCase().includes('KOSDAQ') ? 'KOSDAQ' : 'KRX';
         return { ticker, nameKo, nameEn: nameKo, market, currency: 'KRW' as const };
-      })
-      .filter(item => item.ticker);
-  } catch {
-    return [];
-  }
+      }).filter(item => item.ticker);
+      if (mapped.length > 0) return mapped;
+    }
+  } catch { /* fallthrough */ }
+
+  // 2차: Naver 자동완성 API
+  try {
+    const res = await fetch(proxy(
+      `https://ac.finance.naver.com/ac?q=${encodeURIComponent(query)}&q_enc=UTF-8&st=111&r_format=json&r_enc=UTF-8&r_lt=111`
+    ));
+    if (res.ok) {
+      const json = await res.json();
+      const items: string[][] = json.items?.[0] ?? [];
+      const mapped = items
+        .filter(item => item[3] !== '2')
+        .map(item => {
+          const nameKo = item[0] ?? '';
+          const ticker = item[1] ?? '';
+          const market: Stock['market'] = (item[4] ?? '').toUpperCase().includes('KOSDAQ') ? 'KOSDAQ' : 'KRX';
+          return { ticker, nameKo, nameEn: nameKo, market, currency: 'KRW' as const };
+        })
+        .filter(item => item.ticker);
+      if (mapped.length > 0) return mapped;
+    }
+  } catch { /* fallthrough */ }
+
+  return [];
 }
