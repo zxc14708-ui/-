@@ -152,7 +152,7 @@ export default function App() {
           {/* Header */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-xl font-bold text-white">자산관리 포트폴리오</h1>
+              <h1 className="text-xl font-bold text-white">보유현황</h1>
               <p className="text-gray-500 text-xs mt-0.5">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </p>
