@@ -99,7 +99,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
     liveSearchTimer.current = setTimeout(async () => {
       try {
         const liveResults = isKoreanQuery(v)
-          ? await searchNaverFinance(v)
+          ? await searchNaverFinance(v).then(r => r.length > 0 ? r : searchYahooFinance(v))
           : await searchYahooFinance(v);
         const localTickers = new Set(localResults.map(r => r.ticker.toLowerCase()));
         const extras = liveResults.filter(r => !localTickers.has(r.ticker.toLowerCase()));

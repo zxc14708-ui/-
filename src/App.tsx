@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useExchangeRate } from './hooks/useExchangeRate';
 import { usePortfolio } from './hooks/usePortfolio';
 import { usePriceRefresher } from './hooks/usePriceRefresher';
 import { useSnapshots } from './hooks/useSnapshots';
+import { fetchKoreanName } from './utils/yahooFinance';
 import { ExchangeRateBar } from './components/ExchangeRateBar';
 import { SummaryCards } from './components/SummaryCards';
 import { AccountTabs } from './components/AccountTabs';
@@ -45,6 +46,19 @@ export default function App() {
 
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
     usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
+
+  // 한글명 없는 US 종목 자동 보정 (앱 로드 시 1회)
+  const enrichedRef = useRef(false);
+  useEffect(() => {
+    if (enrichedRef.current || !rawStocks.length) return;
+    enrichedRef.current = true;
+    rawStocks
+      .filter(s => (s.market === 'NYSE' || s.market === 'NASDAQ') && !/[가-힣]/.test(s.nameKo))
+      .forEach(async stock => {
+        const nameKo = await fetchKoreanName(stock.ticker);
+        if (nameKo) updateStock(stock.id, { nameKo });
+      });
+  }, [rawStocks, updateStock]);
 
   const { snapshots, takeSnapshot } = useSnapshots(stocks, accounts, rate.usdToKrw, lastUpdated !== null);
 

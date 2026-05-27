@@ -41,7 +41,7 @@ export function usePortfolio(usdToKrw: number) {
   }, [stocks, accounts]);
 
   const stocksWithStats = useMemo<StockWithStats[]>(() =>
-    stocks.map((s, i) => {
+    stocks.map((s) => {
       const live = liveData[s.id];
       const currentPrice = live?.price ?? s.currentPrice;
       const prevClose = live?.prevClose ?? currentPrice;
