@@ -101,7 +101,7 @@ export default function App() {
 
   const SUB_PAGES: { id: Page; label: string }[] = [
     { id: 'portfolio', label: '보유현황' },
-    { id: 'history', label: '(임시) 계좌 수익률' },
+    { id: 'history', label: '계좌 수익률' },
   ];
 
   return (
