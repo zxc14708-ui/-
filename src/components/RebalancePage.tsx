@@ -27,6 +27,12 @@ function buildWeights(stocks: StockWithStats[], totalValueKrw: number): Record<s
   return map;
 }
 
+function emptyWeights(stocks: StockWithStats[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  stocks.forEach(s => { map[s.id] = ''; });
+  return map;
+}
+
 export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: Props) {
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
@@ -40,15 +46,14 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
   const totalValueKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
 
   const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() =>
-    buildWeights(filteredStocks, totalValueKrw),
+    emptyWeights(filteredStocks),
   );
 
   const [extraCash, setExtraCash] = useState('');
 
   // 계좌 변경 시 비중 초기화
   useEffect(() => {
-    const total = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
-    setTargetWeights(buildWeights(filteredStocks, total));
+    setTargetWeights(emptyWeights(filteredStocks));
     setExtraCash('');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccountId]);
