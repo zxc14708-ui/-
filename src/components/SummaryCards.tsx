@@ -8,13 +8,13 @@ interface Props {
   totalValueKrw: number;
   totalGainLossKrw: number;
   totalCostKrw: number;
+  todayGainLossKrw: number;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
 
-export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw, displayCurrency, usdToKrw }: Props) {
+export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw, todayGainLossKrw, displayCurrency, usdToKrw }: Props) {
   const gainPct = totalCostKrw > 0 ? (totalGainLossKrw / totalCostKrw) * 100 : 0;
-  const rising = stocks.filter(s => s.changeRate > 0).length;
   const falling = stocks.filter(s => s.changeRate < 0).length;
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
@@ -37,11 +37,13 @@ export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCos
         color={totalGainLossKrw >= 0 ? 'green' : 'red'}
       />
       <Card
-        icon={<TrendingUp size={18} className="text-emerald-400" />}
-        label="당일 상승"
-        value={`${rising}개`}
-        sub="종목"
-        color="green"
+        icon={todayGainLossKrw >= 0
+          ? <TrendingUp size={18} className="text-emerald-400" />
+          : <TrendingDown size={18} className="text-red-400" />}
+        label="오늘 손익"
+        value={`${todayGainLossKrw >= 0 ? '+' : ''}${fmt(todayGainLossKrw)}`}
+        sub="당일 변동"
+        color={todayGainLossKrw >= 0 ? 'green' : 'red'}
       />
       <Card
         icon={<BarChart2 size={18} className="text-rose-400" />}
