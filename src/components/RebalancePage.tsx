@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -20,12 +20,6 @@ interface TradeAction {
   accountName: string;
 }
 
-function emptyWeights(stocks: StockWithStats[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  stocks.forEach(s => { map[s.id] = ''; });
-  return map;
-}
-
 export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: Props) {
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
@@ -38,21 +32,20 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
 
   const totalValueKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
 
+  // localStorage에서 불러오기 (종목 ID 기준으로 저장)
   const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(WEIGHTS_KEY);
       if (saved) return JSON.parse(saved) as Record<string, string>;
     } catch {}
-    return emptyWeights(stocks);
+    return {};
   });
 
   const [extraCash, setExtraCash] = useState('');
 
-  // localStorage에 자동 저장
+  // 변경 시 localStorage에 자동 저장
   useEffect(() => {
-    try {
-      localStorage.setItem(WEIGHTS_KEY, JSON.stringify(targetWeights));
-    } catch {}
+    try { localStorage.setItem(WEIGHTS_KEY, JSON.stringify(targetWeights)); } catch {}
   }, [targetWeights]);
 
   const extraCashKrw = Number(extraCash) || 0;
@@ -61,9 +54,9 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
   const weightSum = filteredStocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0);
   const weightValid = Math.abs(weightSum - 100) < 0.15;
 
-  const setWeight = useCallback((id: string, value: string) => {
+  function setWeight(id: string, value: string) {
     setTargetWeights(prev => ({ ...prev, [id]: value }));
-  }, []);
+  }
 
   function resetWeights() {
     setTargetWeights(prev => {
