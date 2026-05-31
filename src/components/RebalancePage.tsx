@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
+
+const WEIGHTS_KEY = 'portfolio_rebalance_weights_v1';
 
 interface Props {
   stocks: StockWithStats[];
@@ -16,15 +18,6 @@ interface TradeAction {
   shares: number;
   actualDiffKrw: number;
   accountName: string;
-}
-
-function buildWeights(stocks: StockWithStats[], totalValueKrw: number): Record<string, string> {
-  const map: Record<string, string> = {};
-  stocks.forEach(s => {
-    const w = totalValueKrw > 0 ? (s.marketValueKrw / totalValueKrw) * 100 : 0;
-    map[s.id] = w.toFixed(1);
-  });
-  return map;
 }
 
 function emptyWeights(stocks: StockWithStats[]): Record<string, string> {
@@ -45,18 +38,22 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
 
   const totalValueKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
 
-  const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() =>
-    emptyWeights(filteredStocks),
-  );
+  const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(WEIGHTS_KEY);
+      if (saved) return JSON.parse(saved) as Record<string, string>;
+    } catch {}
+    return emptyWeights(stocks);
+  });
 
   const [extraCash, setExtraCash] = useState('');
 
-  // 계좌 변경 시 비중 초기화
+  // localStorage에 자동 저장
   useEffect(() => {
-    setTargetWeights(emptyWeights(filteredStocks));
-    setExtraCash('');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAccountId]);
+    try {
+      localStorage.setItem(WEIGHTS_KEY, JSON.stringify(targetWeights));
+    } catch {}
+  }, [targetWeights]);
 
   const extraCashKrw = Number(extraCash) || 0;
   const totalTargetKrw = totalValueKrw + extraCashKrw;
@@ -64,19 +61,28 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
   const weightSum = filteredStocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0);
   const weightValid = Math.abs(weightSum - 100) < 0.15;
 
-  function setWeight(id: string, value: string) {
+  const setWeight = useCallback((id: string, value: string) => {
     setTargetWeights(prev => ({ ...prev, [id]: value }));
-  }
+  }, []);
 
   function resetWeights() {
-    setTargetWeights(buildWeights(filteredStocks, totalValueKrw));
+    setTargetWeights(prev => {
+      const next = { ...prev };
+      filteredStocks.forEach(s => {
+        const w = totalValueKrw > 0 ? (s.marketValueKrw / totalValueKrw) * 100 : 0;
+        next[s.id] = w.toFixed(1);
+      });
+      return next;
+    });
   }
 
   function distributeEvenly() {
     const w = filteredStocks.length > 0 ? (100 / filteredStocks.length).toFixed(1) : '0';
-    const map: Record<string, string> = {};
-    filteredStocks.forEach(s => { map[s.id] = w; });
-    setTargetWeights(map);
+    setTargetWeights(prev => {
+      const next = { ...prev };
+      filteredStocks.forEach(s => { next[s.id] = w; });
+      return next;
+    });
   }
 
   const trades = useMemo<TradeAction[]>(() => {
