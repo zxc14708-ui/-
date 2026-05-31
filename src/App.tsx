@@ -15,6 +15,7 @@ import { StockTreemap } from './components/StockTreemap';
 import { StockTable } from './components/StockTable';
 import { HistoryPage } from './components/HistoryPage';
 import { TradesPage } from './components/TradesPage';
+import { RebalancePage } from './components/RebalancePage';
 import { AllocationChart } from './components/AllocationChart';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
@@ -25,7 +26,7 @@ import type { DisplayCurrency } from './utils/currency';
 import type { Stock, StockWithStats, Trade } from './types';
 import './index.css';
 
-type Page = 'portfolio' | 'history' | 'trades';
+type Page = 'portfolio' | 'history' | 'trades' | 'rebalance';
 
 export default function App() {
   const [refreshIntervalMs, setRefreshIntervalMs] = useState<number | null>(() => {
@@ -175,6 +176,7 @@ export default function App() {
     { id: 'portfolio', label: '보유현황' },
     { id: 'history', label: '계좌 수익률' },
     { id: 'trades', label: '거래 내역' },
+    { id: 'rebalance', label: '리밸런싱' },
   ];
 
   return (
@@ -379,6 +381,16 @@ export default function App() {
           trades={trades}
           accounts={accounts}
           onDeleteTrade={deleteTrade}
+          displayCurrency={displayCurrency}
+          usdToKrw={rate.usdToKrw}
+        />
+      )}
+
+      {/* Rebalance page */}
+      {page === 'rebalance' && (
+        <RebalancePage
+          stocks={stocks}
+          accounts={accounts}
           displayCurrency={displayCurrency}
           usdToKrw={rate.usdToKrw}
         />
