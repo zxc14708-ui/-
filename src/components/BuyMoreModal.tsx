@@ -76,6 +76,7 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
                 type="number"
                 name="buy-price"
                 min="0"
+                step="0.00001"
                 value={price}
                 onChange={e => setPrice(e.target.value)}
                 placeholder="0"
@@ -97,7 +98,7 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
               <div className="flex justify-between text-gray-300">
                 <span>평균단가</span>
                 <span className="text-white tabular-nums">
-                  {symbol}{isUSD ? stock.avgCost.toFixed(2) : stock.avgCost.toLocaleString()} → <span className="text-blue-300 font-semibold">{symbol}{isUSD ? newAvgCost.toFixed(2) : Math.round(newAvgCost).toLocaleString()}</span>
+                  {symbol}{isUSD ? stock.avgCost.toFixed(5) : stock.avgCost.toLocaleString()} → <span className="text-blue-300 font-semibold">{symbol}{isUSD ? newAvgCost.toFixed(5) : Math.round(newAvgCost).toLocaleString()}</span>
                 </span>
               </div>
             </div>
