@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Download } from 'lucide-react';
 import { useExchangeRate } from './hooks/useExchangeRate';
 import { usePortfolio } from './hooks/usePortfolio';
 import { usePriceRefresher } from './hooks/usePriceRefresher';
 import { useSnapshots } from './hooks/useSnapshots';
+import { useTrades } from './hooks/useTrades';
 import { fetchKoreanName } from './utils/yahooFinance';
+import { exportPortfolioCSV } from './utils/exportCsv';
 import { ExchangeRateBar } from './components/ExchangeRateBar';
 import { SummaryCards } from './components/SummaryCards';
 import { AccountTabs } from './components/AccountTabs';
@@ -12,14 +14,18 @@ import { SearchBar } from './components/SearchBar';
 import { StockTreemap } from './components/StockTreemap';
 import { StockTable } from './components/StockTable';
 import { HistoryPage } from './components/HistoryPage';
+import { TradesPage } from './components/TradesPage';
+import { AllocationChart } from './components/AllocationChart';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
 import { BuyMoreModal } from './components/BuyMoreModal';
+import { EditStockModal } from './components/EditStockModal';
+import { SellStockModal } from './components/SellStockModal';
 import type { DisplayCurrency } from './utils/currency';
-import type { Stock, StockWithStats } from './types';
+import type { Stock, StockWithStats, Trade } from './types';
 import './index.css';
 
-type Page = 'portfolio' | 'history';
+type Page = 'portfolio' | 'history' | 'trades';
 
 export default function App() {
   const [refreshIntervalMs, setRefreshIntervalMs] = useState<number | null>(() => {
@@ -47,6 +53,8 @@ export default function App() {
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
     usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
 
+  const { trades, addTrade, deleteTrade } = useTrades();
+
   // 한글명 없는 US 종목 자동 보정 (앱 로드 시 1회)
   const enrichedRef = useRef(false);
   useEffect(() => {
@@ -68,7 +76,15 @@ export default function App() {
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [buyMoreTarget, setBuyMoreTarget] = useState<StockWithStats | null>(null);
+  const [editTarget, setEditTarget] = useState<StockWithStats | null>(null);
+  const [sellTarget, setSellTarget] = useState<StockWithStats | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>('KRW');
+
+  // Today's gain/loss across all stocks
+  const todayGainLossKrw = stocks.reduce((sum, s) => {
+    const mult = s.currency === 'USD' ? rate.usdToKrw : 1;
+    return sum + s.changeAmt * s.quantity * mult;
+  }, 0);
 
   function handleSearchSelect(id: string) {
     const stock = stocks.find(s => s.id === id);
@@ -92,6 +108,62 @@ export default function App() {
     const newQty = stock.quantity + addQty;
     const newAvgCost = (stock.quantity * stock.avgCost + addQty * addPrice) / newQty;
     updateStock(id, { quantity: newQty, avgCost: newAvgCost });
+
+    const account = accounts.find(a => a.id === stock.accountId);
+    const trade: Trade = {
+      id: 'trade_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      stockId: stock.id,
+      ticker: stock.ticker,
+      nameKo: stock.nameKo,
+      market: stock.market,
+      currency: stock.currency,
+      accountId: stock.accountId,
+      accountName: account?.name ?? stock.accountId,
+      type: 'buy',
+      quantity: addQty,
+      price: addPrice,
+      usdToKrw: rate.usdToKrw,
+      createdAt: Date.now(),
+    };
+    addTrade(trade);
+  }
+
+  function handleSell(id: string, qty: number, price: number) {
+    const stock = stocks.find(s => s.id === id);
+    if (!stock) return;
+
+    const remainingQty = stock.quantity - qty;
+    if (remainingQty <= 0) {
+      deleteStock(id);
+    } else {
+      updateStock(id, { quantity: remainingQty });
+    }
+
+    const multiplier = stock.currency === 'USD' ? rate.usdToKrw : 1;
+    const realizedPnlKrw = (price - stock.avgCost) * qty * multiplier;
+
+    const account = accounts.find(a => a.id === stock.accountId);
+    const trade: Trade = {
+      id: 'trade_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      stockId: stock.id,
+      ticker: stock.ticker,
+      nameKo: stock.nameKo,
+      market: stock.market,
+      currency: stock.currency,
+      accountId: stock.accountId,
+      accountName: account?.name ?? stock.accountId,
+      type: 'sell',
+      quantity: qty,
+      price: price,
+      usdToKrw: rate.usdToKrw,
+      createdAt: Date.now(),
+      realizedPnlKrw,
+    };
+    addTrade(trade);
+  }
+
+  function handleEditStock(id: string, updates: Partial<Stock>) {
+    updateStock(id, updates);
   }
 
   function handleDeleteAccount(id: string) {
@@ -102,6 +174,7 @@ export default function App() {
   const SUB_PAGES: { id: Page; label: string }[] = [
     { id: 'portfolio', label: '보유현황' },
     { id: 'history', label: '계좌 수익률' },
+    { id: 'trades', label: '거래 내역' },
   ];
 
   return (
@@ -167,9 +240,19 @@ export default function App() {
             totalValueKrw={totalValueKrw}
             totalGainLossKrw={totalGainLossKrw}
             totalCostKrw={totalCostKrw}
+            todayGainLossKrw={todayGainLossKrw}
             displayCurrency={displayCurrency}
             usdToKrw={rate.usdToKrw}
           />
+
+          {accounts.length > 0 && stocks.length > 0 && (
+            <AllocationChart
+              stocks={stocks}
+              accounts={accounts}
+              displayCurrency={displayCurrency}
+              usdToKrw={rate.usdToKrw}
+            />
+          )}
 
           <AccountTabs
             accounts={accounts}
@@ -244,6 +327,15 @@ export default function App() {
                       : stocks.length}개 종목
                   </span>
                   <button
+                    onClick={() => exportPortfolioCSV(stocks, accounts, rate.usdToKrw)}
+                    disabled={stocks.length === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1d2e] border border-[#2e3151] hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-xs text-gray-400 hover:text-white transition-colors"
+                    title="CSV 내보내기"
+                  >
+                    <Download size={13} />
+                    CSV
+                  </button>
+                  <button
                     onClick={() => setShowAddStockModal(true)}
                     disabled={accounts.length === 0}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
@@ -260,6 +352,8 @@ export default function App() {
                 highlightId={highlightId}
                 onDelete={deleteStock}
                 onBuyMore={setBuyMoreTarget}
+                onEdit={s => setEditTarget(s)}
+                onSell={s => setSellTarget(s)}
                 displayCurrency={displayCurrency}
                 usdToKrw={rate.usdToKrw}
               />
@@ -274,6 +368,17 @@ export default function App() {
           snapshots={snapshots}
           accounts={accounts}
           onTakeSnapshot={takeSnapshot}
+          displayCurrency={displayCurrency}
+          usdToKrw={rate.usdToKrw}
+        />
+      )}
+
+      {/* Trades page */}
+      {page === 'trades' && (
+        <TradesPage
+          trades={trades}
+          accounts={accounts}
+          onDeleteTrade={deleteTrade}
           displayCurrency={displayCurrency}
           usdToKrw={rate.usdToKrw}
         />
@@ -300,6 +405,23 @@ export default function App() {
           stock={buyMoreTarget}
           onConfirm={handleBuyMore}
           onClose={() => setBuyMoreTarget(null)}
+        />
+      )}
+
+      {editTarget && (
+        <EditStockModal
+          stock={editTarget}
+          onConfirm={handleEditStock}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
+
+      {sellTarget && (
+        <SellStockModal
+          stock={sellTarget}
+          usdToKrw={rate.usdToKrw}
+          onConfirm={handleSell}
+          onClose={() => setSellTarget(null)}
         />
       )}
     </div>

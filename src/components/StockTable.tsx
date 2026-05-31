@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical, Pencil, TrendingDown } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -11,6 +11,8 @@ interface Props {
   highlightId: string | null;
   onDelete: (id: string) => void;
   onBuyMore: (stock: StockWithStats) => void;
+  onEdit: (stock: StockWithStats) => void;
+  onSell: (stock: StockWithStats) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
@@ -36,7 +38,7 @@ function loadColOrder(): ColKey[] {
   return DEFAULT_COL_ORDER;
 }
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, displayCurrency, usdToKrw }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEdit, onSell, displayCurrency, usdToKrw }: Props) {
   const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
@@ -278,6 +280,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     >
                       <div className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">{stock.nameKo}</div>
                       <div className="text-gray-500 text-xs font-mono truncate">{stock.ticker} · {stock.market}</div>
+                      {stock.memo && (
+                        <div className="text-gray-600 text-xs truncate mt-0.5" title={stock.memo}>
+                          {stock.memo.length > 30 ? stock.memo.slice(0, 30) + '…' : stock.memo}
+                        </div>
+                      )}
                     </a>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
@@ -299,6 +306,20 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   ))}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onEdit(stock)}
+                        className="text-gray-600 hover:text-blue-400 transition-colors p-1 rounded"
+                        title="수정"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => onSell(stock)}
+                        className="text-gray-600 hover:text-orange-400 transition-colors p-1 rounded"
+                        title="매도"
+                      >
+                        <TrendingDown size={13} />
+                      </button>
                       <button
                         onClick={() => onBuyMore(stock)}
                         className="text-gray-600 hover:text-blue-400 transition-colors p-1 rounded"
