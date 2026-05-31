@@ -137,21 +137,21 @@ export function AllocationChart({ stocks, accounts, displayCurrency, usdToKrw }:
         </div>
 
         {/* Legend */}
-        <div className="flex-1 min-w-0 w-full space-y-2">
+        <div className="flex-1 min-w-0 w-full space-y-1.5">
           {pieData
             .slice()
             .sort((a, b) => b.value - a.value)
             .map((entry, i) => {
               const pct = totalValueKrw > 0 ? (entry.value / totalValueKrw) * 100 : 0;
               return (
-                <div key={i} className="flex items-center gap-2.5">
+                <div key={i} className="flex items-center gap-2">
                   <span
-                    className="flex-shrink-0 w-2.5 h-2.5 rounded-full"
+                    className="flex-shrink-0 w-3 h-3 rounded-full"
                     style={{ background: entry.color }}
                   />
-                  <span className="text-gray-300 text-xs flex-1 truncate">{entry.name}</span>
-                  <span className="text-white text-xs tabular-nums font-medium">{fmt(entry.value)}</span>
-                  <span className="text-gray-500 text-xs tabular-nums w-10 text-right">
+                  <span className="text-gray-300 text-sm flex-1 truncate">{entry.name}</span>
+                  <span className="text-white text-sm tabular-nums font-medium">{fmt(entry.value)}</span>
+                  <span className="text-gray-500 text-sm tabular-nums w-12 text-right">
                     {pct.toFixed(1)}%
                   </span>
                 </div>
