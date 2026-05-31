@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -18,26 +18,45 @@ interface TradeAction {
   accountName: string;
 }
 
+function buildWeights(stocks: StockWithStats[], totalValueKrw: number): Record<string, string> {
+  const map: Record<string, string> = {};
+  stocks.forEach(s => {
+    const w = totalValueKrw > 0 ? (s.marketValueKrw / totalValueKrw) * 100 : 0;
+    map[s.id] = w.toFixed(1);
+  });
+  return map;
+}
+
 export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: Props) {
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
-  const totalValueKrw = stocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
+  // 계좌 필터 — null = 전체
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    stocks.forEach(s => {
-      const w = totalValueKrw > 0 ? (s.marketValueKrw / totalValueKrw) * 100 : 0;
-      map[s.id] = w.toFixed(1);
-    });
-    return map;
-  });
+  const filteredStocks = selectedAccountId
+    ? stocks.filter(s => s.accountId === selectedAccountId)
+    : stocks;
+
+  const totalValueKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
+
+  const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() =>
+    buildWeights(filteredStocks, totalValueKrw),
+  );
 
   const [extraCash, setExtraCash] = useState('');
+
+  // 계좌 변경 시 비중 초기화
+  useEffect(() => {
+    const total = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
+    setTargetWeights(buildWeights(filteredStocks, total));
+    setExtraCash('');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccountId]);
 
   const extraCashKrw = Number(extraCash) || 0;
   const totalTargetKrw = totalValueKrw + extraCashKrw;
 
-  const weightSum = stocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0);
+  const weightSum = filteredStocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0);
   const weightValid = Math.abs(weightSum - 100) < 0.15;
 
   function setWeight(id: string, value: string) {
@@ -45,25 +64,20 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
   }
 
   function resetWeights() {
-    const map: Record<string, string> = {};
-    stocks.forEach(s => {
-      const w = totalValueKrw > 0 ? (s.marketValueKrw / totalValueKrw) * 100 : 0;
-      map[s.id] = w.toFixed(1);
-    });
-    setTargetWeights(map);
+    setTargetWeights(buildWeights(filteredStocks, totalValueKrw));
   }
 
   function distributeEvenly() {
-    const w = stocks.length > 0 ? (100 / stocks.length).toFixed(1) : '0';
+    const w = filteredStocks.length > 0 ? (100 / filteredStocks.length).toFixed(1) : '0';
     const map: Record<string, string> = {};
-    stocks.forEach(s => { map[s.id] = w; });
+    filteredStocks.forEach(s => { map[s.id] = w; });
     setTargetWeights(map);
   }
 
   const trades = useMemo<TradeAction[]>(() => {
     if (!weightValid) return [];
 
-    return stocks
+    return filteredStocks
       .map(s => {
         const targetPct = Number(targetWeights[s.id]) || 0;
         const targetValueKrw = (targetPct / 100) * totalTargetKrw;
@@ -82,13 +96,16 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
         };
       })
       .filter((t): t is TradeAction => t !== null);
-  }, [stocks, targetWeights, totalTargetKrw, usdToKrw, weightValid, accounts]);
+  }, [filteredStocks, targetWeights, totalTargetKrw, usdToKrw, weightValid, accounts]);
 
   const sells = trades.filter(t => t.type === 'sell');
   const buys = trades.filter(t => t.type === 'buy');
   const cashFromSells = sells.reduce((sum, t) => sum + Math.abs(t.actualDiffKrw), 0);
   const cashForBuys = buys.reduce((sum, t) => sum + Math.abs(t.actualDiffKrw), 0);
   const remainingCash = extraCashKrw + cashFromSells - cashForBuys;
+
+  // 계좌 탭 목록 — 보유 종목이 있는 계좌만
+  const accountsWithStocks = accounts.filter(a => stocks.some(s => s.accountId === a.id));
 
   if (stocks.length === 0) {
     return (
@@ -126,10 +143,50 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
         </div>
       </div>
 
+      {/* Account tabs */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setSelectedAccountId(null)}
+          className={`px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+            selectedAccountId === null
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
+          }`}
+        >
+          전체
+          <span className="ml-1.5 text-xs opacity-70">{stocks.length}종목</span>
+        </button>
+        {accountsWithStocks.map(a => {
+          const count = stocks.filter(s => s.accountId === a.id).length;
+          const isSelected = selectedAccountId === a.id;
+          return (
+            <button
+              key={a.id}
+              onClick={() => setSelectedAccountId(a.id)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                isSelected
+                  ? 'border-blue-600 text-white'
+                  : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white'
+              }`}
+              style={isSelected ? { background: a.color + '33', borderColor: a.color } : {}}
+            >
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: a.color }}
+              />
+              {a.name}
+              <span className="opacity-70">{count}종목</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Total amount bar */}
       <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-4 flex flex-wrap items-center gap-4">
         <div>
-          <p className="text-gray-500 text-xs mb-0.5">현재 포트폴리오</p>
+          <p className="text-gray-500 text-xs mb-0.5">
+            {selectedAccountId ? accounts.find(a => a.id === selectedAccountId)?.name : '전체'} 평가금액
+          </p>
           <p className="text-white font-semibold tabular-nums">{fmt(totalValueKrw)}</p>
         </div>
         <span className="text-gray-600 font-bold text-lg">+</span>
@@ -158,7 +215,9 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
             <thead>
               <tr className="border-b border-[#2e3151]">
                 <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-full">종목</th>
-                <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">계좌</th>
+                {!selectedAccountId && (
+                  <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">계좌</th>
+                )}
                 <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">현재금액</th>
                 <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">현재비중</th>
                 <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">
@@ -180,7 +239,7 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
               </tr>
             </thead>
             <tbody>
-              {stocks.map((stock, i) => {
+              {filteredStocks.map((stock, i) => {
                 const currentWeight =
                   totalValueKrw > 0 ? (stock.marketValueKrw / totalValueKrw) * 100 : 0;
                 const targetPct = Number(targetWeights[stock.id]) || 0;
@@ -200,15 +259,17 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
                       <div className="text-white font-medium truncate">{stock.nameKo}</div>
                       <div className="text-gray-500 text-xs font-mono">{stock.ticker} · {stock.market}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ background: accountColor }}
-                        />
-                        <span className="text-gray-400 text-xs">{accountName}</span>
-                      </div>
-                    </td>
+                    {!selectedAccountId && (
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ background: accountColor }}
+                          />
+                          <span className="text-gray-400 text-xs">{accountName}</span>
+                        </div>
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right text-white tabular-nums whitespace-nowrap">
                       {fmt(stock.marketValueKrw)}
                     </td>
@@ -248,14 +309,14 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
       {/* Validation warning */}
       {!weightValid && (
         <div className="bg-red-950/30 border border-red-800/40 rounded-xl px-4 py-3 text-red-400 text-sm">
-          목표 비중 합계가 100%가 되어야 합니다. 현재: <span className="font-semibold tabular-nums">{weightSum.toFixed(1)}%</span>
+          목표 비중 합계가 100%가 되어야 합니다. 현재:{' '}
+          <span className="font-semibold tabular-nums">{weightSum.toFixed(1)}%</span>
         </div>
       )}
 
       {/* Trade plan */}
       {weightValid && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Sells */}
           <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-4 space-y-3">
             <h4 className="text-sm font-semibold text-red-400 flex items-center gap-2">
               📉 매도 먼저 실행
@@ -289,7 +350,6 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
             )}
           </div>
 
-          {/* Buys */}
           <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-4 space-y-3">
             <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
               📈 매수 나중에 실행
