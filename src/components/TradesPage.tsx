@@ -26,14 +26,14 @@ function MemoCell({ trade, onUpdate }: { trade: Trade; onUpdate: (memo: string) 
 
   if (editing) {
     return (
-      <td className="px-4 py-2 min-w-[140px]">
+      <td className="px-4 py-2 min-w-[140px] text-center">
         <input
           autoFocus
           value={value}
           onChange={e => setValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setValue(trade.memo ?? ''); setEditing(false); } }}
-          className="w-full bg-[#0f1117] border border-blue-500 text-white text-xs rounded px-2 py-1 outline-none"
+          className="w-full bg-[#0f1117] border border-blue-500 text-white text-xs rounded px-2 py-1 outline-none text-center"
           placeholder="코멘트 입력..."
         />
       </td>
@@ -42,7 +42,7 @@ function MemoCell({ trade, onUpdate }: { trade: Trade; onUpdate: (memo: string) 
 
   return (
     <td
-      className="px-4 py-3 min-w-[120px] cursor-pointer group"
+      className="px-4 py-3 min-w-[120px] cursor-pointer group text-center"
       onClick={() => setEditing(true)}
       title="클릭하여 편집"
     >
@@ -154,7 +154,7 @@ export function TradesPage({ trades, accounts: _accounts, onDeleteTrade, onUpdat
                 <tr className="border-b border-[#2e3151]">
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">날짜/시간</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-full">종목</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">코멘트</th>
+                  <th className="text-center px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">코멘트</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">계좌</th>
                   <th className="text-center px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">유형</th>
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">수량</th>
