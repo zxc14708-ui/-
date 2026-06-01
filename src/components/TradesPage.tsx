@@ -8,13 +8,54 @@ interface Props {
   trades: Trade[];
   accounts: Account[];
   onDeleteTrade: (id: string) => void;
+  onUpdateTrade: (id: string, updates: Partial<Trade>) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
 
 type FilterType = '전체' | '매수' | '매도';
 
-export function TradesPage({ trades, accounts: _accounts, onDeleteTrade, displayCurrency, usdToKrw }: Props) {
+function MemoCell({ trade, onUpdate }: { trade: Trade; onUpdate: (memo: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(trade.memo ?? '');
+
+  function handleBlur() {
+    setEditing(false);
+    if (value !== (trade.memo ?? '')) onUpdate(value);
+  }
+
+  if (editing) {
+    return (
+      <td className="px-4 py-2 min-w-[140px]">
+        <input
+          autoFocus
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setValue(trade.memo ?? ''); setEditing(false); } }}
+          className="w-full bg-[#0f1117] border border-blue-500 text-white text-xs rounded px-2 py-1 outline-none"
+          placeholder="코멘트 입력..."
+        />
+      </td>
+    );
+  }
+
+  return (
+    <td
+      className="px-4 py-3 min-w-[120px] cursor-pointer group"
+      onClick={() => setEditing(true)}
+      title="클릭하여 편집"
+    >
+      {value ? (
+        <span className="text-gray-400 text-xs group-hover:text-gray-200 transition-colors">{value}</span>
+      ) : (
+        <span className="text-gray-700 text-xs group-hover:text-gray-500 transition-colors">—</span>
+      )}
+    </td>
+  );
+}
+
+export function TradesPage({ trades, accounts: _accounts, onDeleteTrade, onUpdateTrade, displayCurrency, usdToKrw }: Props) {
   const [filter, setFilter] = useState<FilterType>('전체');
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
@@ -113,6 +154,7 @@ export function TradesPage({ trades, accounts: _accounts, onDeleteTrade, display
                 <tr className="border-b border-[#2e3151]">
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">날짜/시간</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs w-full">종목</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">코멘트</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">계좌</th>
                   <th className="text-center px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">유형</th>
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">수량</th>
@@ -138,12 +180,16 @@ export function TradesPage({ trades, accounts: _accounts, onDeleteTrade, display
                         {trade.ticker} · {trade.market}
                       </div>
                     </td>
+                    <MemoCell
+                      trade={trade}
+                      onUpdate={memo => onUpdateTrade(trade.id, { memo })}
+                    />
                     <td className="px-4 py-3 text-gray-300 text-xs whitespace-nowrap">
                       {trade.accountName}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                        className={`inline-block px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
                           trade.type === 'buy'
                             ? 'bg-blue-500/20 text-blue-400'
                             : 'bg-red-500/20 text-red-400'

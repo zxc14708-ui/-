@@ -35,6 +35,14 @@ export function useTrades() {
     });
   }, []);
 
+  const updateTrade = useCallback((id: string, updates: Partial<Trade>) => {
+    setTrades(prev => {
+      const next = prev.map(t => t.id === id ? { ...t, ...updates } : t);
+      saveTrades(next);
+      return next;
+    });
+  }, []);
+
   const deleteTrade = useCallback((id: string) => {
     setTrades(prev => {
       const next = prev.filter(t => t.id !== id);
@@ -43,5 +51,5 @@ export function useTrades() {
     });
   }, []);
 
-  return { trades, addTrade, deleteTrade };
+  return { trades, addTrade, updateTrade, deleteTrade };
 }

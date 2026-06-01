@@ -28,6 +28,7 @@ export interface Trade {
   usdToKrw: number;
   createdAt: number;    // Unix ms
   realizedPnlKrw?: number; // only for sells
+  memo?: string;
 }
 
 export interface Account {
