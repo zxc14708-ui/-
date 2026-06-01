@@ -54,7 +54,7 @@ export default function App() {
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
     usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
 
-  const { trades, addTrade, deleteTrade } = useTrades();
+  const { trades, addTrade, updateTrade, deleteTrade } = useTrades();
 
   // 한글명 없는 US 종목 자동 보정 (앱 로드 시 1회)
   const enrichedRef = useRef(false);
@@ -381,6 +381,7 @@ export default function App() {
           trades={trades}
           accounts={accounts}
           onDeleteTrade={deleteTrade}
+          onUpdateTrade={updateTrade}
           displayCurrency={displayCurrency}
           usdToKrw={rate.usdToKrw}
         />
