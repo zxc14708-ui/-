@@ -26,14 +26,14 @@ function MemoCell({ trade, onUpdate }: { trade: Trade; onUpdate: (memo: string) 
 
   if (editing) {
     return (
-      <td className="px-4 py-2 min-w-[140px]">
+      <td className="px-4 py-2 min-w-[140px] text-center">
         <input
           autoFocus
           value={value}
           onChange={e => setValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setValue(trade.memo ?? ''); setEditing(false); } }}
-          className="w-full bg-[#0f1117] border border-blue-500 text-white text-xs rounded px-2 py-1 outline-none"
+          className="w-full bg-[#0f1117] border border-blue-500 text-white text-xs rounded px-2 py-1 outline-none text-center"
           placeholder="코멘트 입력..."
         />
       </td>
@@ -42,7 +42,7 @@ function MemoCell({ trade, onUpdate }: { trade: Trade; onUpdate: (memo: string) 
 
   return (
     <td
-      className="px-4 py-3 min-w-[120px] cursor-pointer group"
+      className="px-4 py-3 min-w-[120px] cursor-pointer group text-center"
       onClick={() => setEditing(true)}
       title="클릭하여 편집"
     >
