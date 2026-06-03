@@ -26,6 +26,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
   const [quantity, setQuantity] = useState('');
   const [totalAmount, setTotalAmount] = useState(''); // raw number string (no commas)
   const [avgCost, setAvgCost] = useState('');
+  const [memo, setMemo] = useState('');
 
   function formatAmount(raw: string): string {
     if (!raw) return '';
@@ -143,6 +144,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
       avgCost: Number(avgCost),
       currentPrice: Number(avgCost),
       currency: selected.currency,
+      memo: memo.trim() || undefined,
     };
     onAdd(stock);
     onClose();
@@ -324,6 +326,19 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
               placeholder="0" type="number" step="0.0000000001"
             />
           )}
+
+          {/* 투자 근거 */}
+          <div>
+            <label className="text-gray-500 text-xs mb-1.5 block">투자 근거 <span className="text-gray-600">(선택)</span></label>
+            <textarea
+              value={memo}
+              onChange={e => setMemo(e.target.value.slice(0, 200))}
+              rows={2}
+              placeholder="매수 이유, 목표가, 전략 등을 기록하세요..."
+              className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700 resize-none"
+            />
+            <div className="text-right text-xs text-gray-600 mt-0.5">{memo.length}/200</div>
+          </div>
 
           <div className="flex gap-3 pt-1">
             <button
