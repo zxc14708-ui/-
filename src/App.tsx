@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, RefreshCw, Download } from 'lucide-react';
+import { Plus, RefreshCw, Download, Cloud } from 'lucide-react';
 import { useExchangeRate } from './hooks/useExchangeRate';
 import { usePortfolio } from './hooks/usePortfolio';
 import { usePriceRefresher } from './hooks/usePriceRefresher';
@@ -22,6 +22,7 @@ import { AddAccountModal } from './components/AddAccountModal';
 import { BuyMoreModal } from './components/BuyMoreModal';
 import { EditStockModal } from './components/EditStockModal';
 import { SellStockModal } from './components/SellStockModal';
+import { SyncModal } from './components/SyncModal';
 import type { DisplayCurrency } from './utils/currency';
 import type { Stock, StockWithStats, Trade } from './types';
 import './index.css';
@@ -76,6 +77,7 @@ export default function App() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showAddStockModal, setShowAddStockModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [buyMoreTarget, setBuyMoreTarget] = useState<StockWithStats | null>(null);
   const [editTarget, setEditTarget] = useState<StockWithStats | null>(null);
   const [sellTarget, setSellTarget] = useState<StockWithStats | null>(null);
@@ -218,6 +220,16 @@ export default function App() {
               {tab.label}
             </button>
           ))}
+          <div className="ml-auto">
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs text-gray-400 hover:text-white border border-transparent hover:border-[#2e3151] rounded-lg transition-colors"
+              title="기기 간 동기화"
+            >
+              <Cloud size={13} />
+              동기화
+            </button>
+          </div>
         </div>
       </div>
 
@@ -435,6 +447,13 @@ export default function App() {
           usdToKrw={rate.usdToKrw}
           onConfirm={handleSell}
           onClose={() => setSellTarget(null)}
+        />
+      )}
+
+      {showSyncModal && (
+        <SyncModal
+          onClose={() => setShowSyncModal(false)}
+          onImportDone={() => window.location.reload()}
         />
       )}
     </div>
