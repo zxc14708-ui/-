@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { X, Cloud, Upload, Download, Copy, Check, RefreshCw, AlertCircle } from 'lucide-react';
-import { encryptPortfolio, decryptPortfolio, generateSyncKey } from '../utils/syncCrypto';
+import { useState } from 'react';
+import { X, Cloud, Upload, Download, AlertCircle, RefreshCw, User, Lock } from 'lucide-react';
+import { encryptPortfolio, decryptPortfolio, hashUserId } from '../utils/syncCrypto';
 
 const WORKER_URL = 'https://my-stock-proxy.zxc14708.workers.dev';
-const SYNC_KEY_STORAGE = 'portfolio_sync_key';
+const SYNC_ID_STORAGE = 'portfolio_sync_id';
 const LAST_SYNC_STORAGE = 'portfolio_last_sync';
 
 type Status = 'idle' | 'busy' | 'success' | 'error';
@@ -14,48 +14,34 @@ interface Props {
 }
 
 export function SyncModal({ onClose, onImportDone }: Props) {
-  const [syncKey, setSyncKey] = useState<string>(() => {
-    return localStorage.getItem(SYNC_KEY_STORAGE) ?? '';
+  const [userId, setUserId] = useState<string>(() => {
+    return localStorage.getItem(SYNC_ID_STORAGE) ?? '';
   });
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [message, setMessage] = useState('');
-  const [copied, setCopied] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(() => {
     const v = localStorage.getItem(LAST_SYNC_STORAGE);
     return v ? Number(v) : null;
   });
 
-  useEffect(() => {
-    if (!syncKey) {
-      const newKey = generateSyncKey();
-      setSyncKey(newKey);
-      localStorage.setItem(SYNC_KEY_STORAGE, newKey);
-    }
-  }, [syncKey]);
-
-  function copySyncKey() {
-    navigator.clipboard.writeText(syncKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function regenerateKey() {
-    if (!window.confirm('새 동기화 키를 생성하면 기존 키로는 불러올 수 없습니다. 계속할까요?')) return;
-    const newKey = generateSyncKey();
-    setSyncKey(newKey);
-    localStorage.setItem(SYNC_KEY_STORAGE, newKey);
+  function handleIdChange(value: string) {
+    setUserId(value);
+    localStorage.setItem(SYNC_ID_STORAGE, value);
+    setStatus('idle');
+    setMessage('');
   }
 
   async function handleUpload() {
-    if (!password) { setMessage('비밀번호를 입력해주세요'); setStatus('error'); return; }
-    if (!syncKey)  { setMessage('동기화 키가 없습니다'); setStatus('error'); return; }
+    if (!userId.trim()) { setMessage('아이디를 입력해주세요'); setStatus('error'); return; }
+    if (!password)      { setMessage('비밀번호를 입력해주세요'); setStatus('error'); return; }
 
     setStatus('busy'); setMessage('암호화 중...');
     try {
       const encrypted = await encryptPortfolio(password);
+      const kvKey = await hashUserId(userId.trim());
       setMessage('업로드 중...');
-      const res = await fetch(`${WORKER_URL}?action=sync&key=${encodeURIComponent(syncKey)}`, {
+      const res = await fetch(`${WORKER_URL}?action=sync&key=${kvKey}`, {
         method: 'PUT',
         body: encrypted,
       });
@@ -64,7 +50,7 @@ export function SyncModal({ onClose, onImportDone }: Props) {
       localStorage.setItem(LAST_SYNC_STORAGE, String(now));
       setLastSync(now);
       setStatus('success');
-      setMessage('업로드 완료! 다른 기기에서 동기화 키와 비밀번호로 불러올 수 있습니다.');
+      setMessage('업로드 완료! 다른 기기에서 같은 아이디·비밀번호로 불러올 수 있습니다.');
     } catch (e) {
       setStatus('error');
       setMessage(`업로드 실패: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
@@ -72,13 +58,14 @@ export function SyncModal({ onClose, onImportDone }: Props) {
   }
 
   async function handleDownload() {
-    if (!password) { setMessage('비밀번호를 입력해주세요'); setStatus('error'); return; }
-    if (!syncKey)  { setMessage('동기화 키를 입력해주세요'); setStatus('error'); return; }
+    if (!userId.trim()) { setMessage('아이디를 입력해주세요'); setStatus('error'); return; }
+    if (!password)      { setMessage('비밀번호를 입력해주세요'); setStatus('error'); return; }
 
     setStatus('busy'); setMessage('다운로드 중...');
     try {
-      const res = await fetch(`${WORKER_URL}?action=sync&key=${encodeURIComponent(syncKey)}`);
-      if (res.status === 404) throw new Error('해당 키의 데이터가 없습니다. 키를 확인해주세요.');
+      const kvKey = await hashUserId(userId.trim());
+      const res = await fetch(`${WORKER_URL}?action=sync&key=${kvKey}`);
+      if (res.status === 404) throw new Error('해당 아이디의 데이터가 없습니다. 먼저 업로드해주세요.');
       if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
       const encrypted = await res.text();
       setMessage('복호화 중...');
@@ -92,7 +79,7 @@ export function SyncModal({ onClose, onImportDone }: Props) {
     } catch (e) {
       setStatus('error');
       const msg = e instanceof Error ? e.message : '알 수 없는 오류';
-      setMessage(msg.includes('오류') ? msg : `복호화 실패: 비밀번호를 확인해주세요`);
+      setMessage(msg.includes('없습니다') ? msg : '복호화 실패: 비밀번호를 확인해주세요');
     }
   }
 
@@ -110,45 +97,27 @@ export function SyncModal({ onClose, onImportDone }: Props) {
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* 동기화 키 */}
+        <div className="p-5 space-y-4">
+          {/* 아이디 */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-gray-400 text-xs font-medium">동기화 키</label>
-              <button
-                onClick={regenerateKey}
-                className="text-gray-600 hover:text-gray-400 text-xs flex items-center gap-1 transition-colors"
-              >
-                <RefreshCw size={10} /> 새로 생성
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={syncKey}
-                onChange={e => {
-                  setSyncKey(e.target.value);
-                  localStorage.setItem(SYNC_KEY_STORAGE, e.target.value);
-                }}
-                className="flex-1 bg-[#0f1117] border border-[#2e3151] text-white text-xs font-mono rounded-lg px-3 py-2.5 outline-none focus:border-blue-500"
-                placeholder="동기화 키 입력 또는 자동 생성"
-              />
-              <button
-                onClick={copySyncKey}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#0f1117] border border-[#2e3151] hover:border-gray-500 rounded-lg text-gray-400 hover:text-white text-xs transition-colors"
-              >
-                {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-                {copied ? '복사됨' : '복사'}
-              </button>
-            </div>
+            <label className="text-gray-400 text-xs font-medium block mb-1.5 flex items-center gap-1.5">
+              <User size={11} /> 아이디
+            </label>
+            <input
+              value={userId}
+              onChange={e => handleIdChange(e.target.value)}
+              placeholder="사용할 아이디 입력..."
+              className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 placeholder:text-gray-700"
+            />
             <p className="text-gray-600 text-xs mt-1.5">
-              다른 기기에서 불러올 때 이 키가 필요합니다. 안전한 곳에 보관하세요.
+              모든 기기에서 동일한 아이디를 사용하세요. 서버에는 해시값만 저장됩니다.
             </p>
           </div>
 
           {/* 비밀번호 */}
           <div>
-            <label className="text-gray-400 text-xs font-medium block mb-1.5">
-              암호화 비밀번호 <span className="text-gray-600">(서버에 저장되지 않음)</span>
+            <label className="text-gray-400 text-xs font-medium block mb-1.5 flex items-center gap-1.5">
+              <Lock size={11} /> 비밀번호 <span className="text-gray-600">(서버에 저장되지 않음)</span>
             </label>
             <input
               type="password"
@@ -158,7 +127,7 @@ export function SyncModal({ onClose, onImportDone }: Props) {
               className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 placeholder:text-gray-700"
             />
             <p className="text-gray-600 text-xs mt-1.5">
-              업로드·다운로드 모두 동일한 비밀번호를 사용해야 합니다.
+              분실 시 복구 불가 — 업로드·다운로드 모두 동일한 비밀번호를 사용하세요.
             </p>
           </div>
 
