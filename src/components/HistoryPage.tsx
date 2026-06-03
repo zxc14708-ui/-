@@ -7,7 +7,7 @@ import { Camera, TrendingUp, Loader2 } from 'lucide-react';
 import type { DailySnapshot, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
-import { fetchSpxHistory, getSpxPrice } from '../utils/spxData';
+import { fetchSpxHistory, fetchKospiHistory, getIndexPrice } from '../utils/spxData';
 
 type Period = 'day' | 'month' | 'year';
 
@@ -55,20 +55,26 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [benchmarkOn, setBenchmarkOn] = useState(false);
   const [spxData, setSpxData] = useState<Record<string, number> | null>(null);
-  const [spxLoading, setSpxLoading] = useState(false);
-  const [spxError, setSpxError] = useState('');
+  const [kospiData, setKospiData] = useState<Record<string, number> | null>(null);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+  const [benchmarkError, setBenchmarkError] = useState('');
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fmt = (v: number) => fmtAmountFull(v, displayCurrency, usdToKrw);
 
   useEffect(() => {
-    if (!benchmarkOn || spxData) return;
-    setSpxLoading(true);
-    setSpxError('');
-    fetchSpxHistory()
-      .then(d => setSpxData(d))
-      .catch(() => setSpxError('S&P500 데이터를 불러오지 못했습니다'))
-      .finally(() => setSpxLoading(false));
-  }, [benchmarkOn, spxData]);
+    if (!benchmarkOn || (spxData && kospiData)) return;
+    setBenchmarkLoading(true);
+    setBenchmarkError('');
+    Promise.allSettled([
+      spxData ? Promise.resolve(spxData) : fetchSpxHistory(),
+      kospiData ? Promise.resolve(kospiData) : fetchKospiHistory(),
+    ]).then(([spxResult, kospiResult]) => {
+      if (spxResult.status === 'fulfilled') setSpxData(spxResult.value);
+      if (kospiResult.status === 'fulfilled') setKospiData(kospiResult.value);
+      if (spxResult.status === 'rejected' && kospiResult.status === 'rejected')
+        setBenchmarkError('벤치마크 데이터를 불러오지 못했습니다');
+    }).finally(() => setBenchmarkLoading(false));
+  }, [benchmarkOn, spxData, kospiData]);
 
   const handleSave = useCallback(() => {
     onTakeSnapshot();
@@ -159,26 +165,30 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
 
   // 벤치마크: 정규화된 수익률 % (첫 스냅샷 기준)
   const benchmarkChartData = useMemo(() => {
-    if (!benchmarkOn || !spxData || displaySnapshots.length < 2) return null;
+    if (!benchmarkOn || displaySnapshots.length < 2) return null;
     const basePortfolio = getSnapVal(displaySnapshots[0], selectedAccountId);
-    const baseSpx = getSpxPrice(spxData, displaySnapshots[0].date);
-    if (!basePortfolio || !baseSpx) return null;
+    if (!basePortfolio) return null;
+
+    const baseSpx = spxData ? getIndexPrice(spxData, displaySnapshots[0].date) : null;
+    const baseKospi = kospiData ? getIndexPrice(kospiData, displaySnapshots[0].date) : null;
 
     return displaySnapshots.map(snap => {
       const portVal = getSnapVal(snap, selectedAccountId);
-      const spxVal = getSpxPrice(spxData, snap.date);
+      const spxVal = spxData ? getIndexPrice(spxData, snap.date) : null;
+      const kospiVal = kospiData ? getIndexPrice(kospiData, snap.date) : null;
       return {
         date: dateLabel(snap.date, period),
         portfolio: basePortfolio > 0 ? parseFloat(((portVal / basePortfolio - 1) * 100).toFixed(2)) : 0,
-        sp500: spxVal && baseSpx > 0 ? parseFloat(((spxVal / baseSpx - 1) * 100).toFixed(2)) : null,
+        sp500: spxVal && baseSpx ? parseFloat(((spxVal / baseSpx - 1) * 100).toFixed(2)) : null,
+        kospi: kospiVal && baseKospi ? parseFloat(((kospiVal / baseKospi - 1) * 100).toFixed(2)) : null,
       };
     });
-  }, [benchmarkOn, spxData, displaySnapshots, selectedAccountId, period]);
+  }, [benchmarkOn, spxData, kospiData, displaySnapshots, selectedAccountId, period]);
 
   const benchmarkSummary = useMemo(() => {
     if (!benchmarkChartData || benchmarkChartData.length < 2) return null;
     const last = benchmarkChartData[benchmarkChartData.length - 1];
-    return { portfolio: last.portfolio, sp500: last.sp500 };
+    return { portfolio: last.portfolio, sp500: last.sp500, kospi: last.kospi };
   }, [benchmarkChartData]);
 
   if (snapshots.length === 0) {
@@ -235,8 +245,8 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                 : 'bg-[#1a1d2e] border-[#2e3151] text-gray-400 hover:text-white hover:border-gray-500'
             }`}
           >
-            {spxLoading ? <Loader2 size={12} className="animate-spin" /> : <TrendingUp size={12} />}
-            S&P500 비교
+            {benchmarkLoading ? <Loader2 size={12} className="animate-spin" /> : <TrendingUp size={12} />}
+            벤치마크
           </button>
           <div className="flex bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-0.5">
             {(['day', 'month', 'year'] as Period[]).map(p => (
@@ -334,36 +344,51 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
 
       {/* 벤치마크 요약 */}
       {benchmarkOn && benchmarkSummary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl px-4 py-3">
-            <p className="text-gray-500 text-xs mb-1">내 포트폴리오 수익률</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-[#1a1d2e] border border-indigo-800/40 rounded-xl px-4 py-3">
+            <p className="text-gray-500 text-xs mb-1 flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-500" /> 내 포트폴리오
+            </p>
             <p className={`font-semibold tabular-nums text-lg ${pctColor(benchmarkSummary.portfolio)}`}>
               {pctStr(benchmarkSummary.portfolio)}
             </p>
             <p className="text-gray-600 text-xs mt-0.5">첫 기록 기준</p>
           </div>
           <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl px-4 py-3">
-            <p className="text-gray-500 text-xs mb-1">S&P500 수익률</p>
+            <p className="text-gray-500 text-xs mb-1 flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" /> S&P500
+            </p>
             <p className={`font-semibold tabular-nums text-lg ${pctColor(benchmarkSummary.sp500 ?? 0)}`}>
               {pctStr(benchmarkSummary.sp500)}
             </p>
-            <p className="text-gray-600 text-xs mt-0.5">같은 기간</p>
+            {benchmarkSummary.sp500 !== null && (
+              <p className={`text-xs mt-0.5 ${pctColor(benchmarkSummary.portfolio - benchmarkSummary.sp500)}`}>
+                초과 {pctStr(benchmarkSummary.portfolio - benchmarkSummary.sp500)}
+              </p>
+            )}
           </div>
-          {benchmarkSummary.sp500 !== null && (
-            <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl px-4 py-3">
-              <p className="text-gray-500 text-xs mb-1">초과 수익률</p>
-              <p className={`font-semibold tabular-nums text-lg ${pctColor(benchmarkSummary.portfolio - benchmarkSummary.sp500)}`}>
-                {pctStr(benchmarkSummary.portfolio - benchmarkSummary.sp500)}
+          <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl px-4 py-3">
+            <p className="text-gray-500 text-xs mb-1 flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400" /> KOSPI
+            </p>
+            <p className={`font-semibold tabular-nums text-lg ${pctColor(benchmarkSummary.kospi ?? 0)}`}>
+              {pctStr(benchmarkSummary.kospi)}
+            </p>
+            {benchmarkSummary.kospi !== null && (
+              <p className={`text-xs mt-0.5 ${pctColor(benchmarkSummary.portfolio - benchmarkSummary.kospi)}`}>
+                초과 {pctStr(benchmarkSummary.portfolio - benchmarkSummary.kospi)}
               </p>
-              <p className="text-gray-600 text-xs mt-0.5">
-                {benchmarkSummary.portfolio >= benchmarkSummary.sp500 ? '시장 대비 우위' : '시장 대비 부진'}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="bg-[#1a1d2e] border border-[#2e3151] rounded-xl px-4 py-3">
+            <p className="text-gray-500 text-xs mb-1">비교 기간</p>
+            <p className="text-white text-sm font-medium">{displaySnapshots[0]?.date}</p>
+            <p className="text-gray-600 text-xs mt-0.5">~ {displaySnapshots[displaySnapshots.length - 1]?.date}</p>
+          </div>
         </div>
       )}
-      {benchmarkOn && spxError && (
-        <p className="text-red-400 text-xs">{spxError}</p>
+      {benchmarkOn && benchmarkError && (
+        <p className="text-red-400 text-xs">{benchmarkError}</p>
       )}
 
       {/* Chart */}
@@ -381,14 +406,16 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   labelStyle={{ color: '#9ca3af', marginBottom: 4 }}
                   formatter={(value, name) => {
                     const v = Number(value ?? 0);
-                    return [`${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, name === 'portfolio' ? '내 포트폴리오' : 'S&P500'];
+                    const label = name === 'portfolio' ? '내 포트폴리오' : name === 'sp500' ? 'S&P500' : 'KOSPI';
+                    return [`${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, label];
                   }}
                 />
                 <Line type="monotone" dataKey="portfolio" stroke="#6366f1" strokeWidth={2} dot={false} name="portfolio" />
-                <Line type="monotone" dataKey="sp500" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="5 3" name="sp500" connectNulls />
+                <Line type="monotone" dataKey="sp500" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="5 3" name="sp500" connectNulls />
+                <Line type="monotone" dataKey="kospi" stroke="#34d399" strokeWidth={1.5} dot={false} strokeDasharray="3 3" name="kospi" connectNulls />
               </LineChart>
             </ResponsiveContainer>
-          ) : benchmarkOn && spxLoading ? (
+          ) : benchmarkOn && benchmarkLoading ? (
             <div className="h-full flex items-center justify-center gap-2 text-gray-500 text-sm">
               <Loader2 size={16} className="animate-spin" /> S&P500 데이터 로딩 중...
             </div>
@@ -457,12 +484,15 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
 
         {/* 벤치마크 범례 */}
         {benchmarkOn && benchmarkChartData && (
-          <div className="flex gap-4 mt-3 pt-3 border-t border-[#2e3151] text-xs">
+          <div className="flex gap-4 mt-3 pt-3 border-t border-[#2e3151] text-xs flex-wrap">
             <span className="flex items-center gap-1.5 text-gray-300">
               <span className="inline-block w-4 h-0.5 bg-indigo-400 rounded" /> 내 포트폴리오
             </span>
             <span className="flex items-center gap-1.5 text-gray-400">
-              <span className="inline-block w-4 h-0.5 bg-amber-400 rounded opacity-80" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #f59e0b 0 5px, transparent 5px 8px)' }} /> S&P500
+              <span className="inline-block w-4 h-px bg-amber-400" style={{ backgroundImage: 'repeating-linear-gradient(90deg,#f59e0b 0 5px,transparent 5px 8px)' }} /> S&P500
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-400">
+              <span className="inline-block w-4 h-px bg-emerald-400" style={{ backgroundImage: 'repeating-linear-gradient(90deg,#34d399 0 3px,transparent 3px 6px)' }} /> KOSPI
             </span>
           </div>
         )}
