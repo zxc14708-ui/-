@@ -33,8 +33,6 @@ export function AccountTabs({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingColor, setEditingColor] = useState('');
-  const [editingCash, setEditingCash] = useState('');
-  const [editingCashUsd, setEditingCashUsd] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // drag state
@@ -64,16 +62,12 @@ export function AccountTabs({
     setEditingId(acc.id);
     setEditingName(acc.name);
     setEditingColor(acc.color);
-    setEditingCash(acc.cashKrw ? String(acc.cashKrw) : '');
-    setEditingCashUsd(acc.cashUsd ? String(acc.cashUsd) : '');
   }
 
   function commitEdit() {
     if (!editingId) return;
     const name = editingName.trim();
-    const cashKrw = Number(editingCash.replace(/,/g, '')) || 0;
-    const cashUsd = Number(editingCashUsd.replace(/,/g, '')) || 0;
-    if (name) onUpdateAccount(editingId, { name, color: editingColor, cashKrw, cashUsd });
+    if (name) onUpdateAccount(editingId, { name, color: editingColor });
     setEditingId(null);
   }
 
@@ -242,33 +236,6 @@ export function AccountTabs({
                         {editingColor === color && <Check size={12} className="text-white drop-shadow" />}
                       </button>
                     ))}
-                  </div>
-                  <div className="mt-2.5 pt-2 border-t border-[#2e3151] space-y-2">
-                    <div>
-                      <p className="text-gray-500 text-xs mb-1.5">현금 잔고 (₩)</p>
-                      <input
-                        type="number"
-                        min="0"
-                        value={editingCash}
-                        onChange={e => setEditingCash(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        placeholder="0"
-                        className="w-full bg-[#1a1d2e] border border-[#2e3151] text-white text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500 placeholder:text-gray-600 tabular-nums"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs mb-1.5">현금 잔고 ($)</p>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editingCashUsd}
-                        onChange={e => setEditingCashUsd(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        placeholder="0"
-                        className="w-full bg-[#1a1d2e] border border-[#2e3151] text-white text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500 placeholder:text-gray-600 tabular-nums"
-                      />
-                    </div>
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button
