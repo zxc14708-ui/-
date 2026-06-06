@@ -9,22 +9,24 @@ interface Props {
   totalGainLossKrw: number;
   totalCostKrw: number;
   todayGainLossKrw: number;
+  totalCashKrw: number;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
 
-export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw, todayGainLossKrw, displayCurrency, usdToKrw }: Props) {
+export function SummaryCards({ stocks, totalValueKrw, totalGainLossKrw, totalCostKrw, todayGainLossKrw, totalCashKrw, displayCurrency, usdToKrw }: Props) {
   const gainPct = totalCostKrw > 0 ? (totalGainLossKrw / totalCostKrw) * 100 : 0;
   const falling = stocks.filter(s => s.changeRate < 0).length;
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
+  const totalAssets = totalValueKrw + totalCashKrw;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <Card
         icon={<Wallet size={18} className="text-blue-400" />}
-        label="총 평가금액"
-        value={fmt(totalValueKrw)}
-        sub={`${stocks.length}개 종목`}
+        label="총 자산"
+        value={fmt(totalAssets)}
+        sub={totalCashKrw > 0 ? `주식 ${fmt(totalValueKrw)} + 현금 ${fmt(totalCashKrw)}` : `${stocks.length}개 종목`}
         color="blue"
       />
       <Card

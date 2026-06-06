@@ -49,7 +49,7 @@ export default function App() {
     addStock, updateStock, deleteStock,
     addAccount, updateAccount, reorderAccounts, deleteAccount,
     bulkUpdateLiveData,
-    totalValueKrw, totalGainLossKrw, totalCostKrw,
+    totalValueKrw, totalGainLossKrw, totalCostKrw, totalCashKrw,
   } = usePortfolio(rate.usdToKrw);
 
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
@@ -255,6 +255,7 @@ export default function App() {
             totalGainLossKrw={totalGainLossKrw}
             totalCostKrw={totalCostKrw}
             todayGainLossKrw={todayGainLossKrw}
+            totalCashKrw={totalCashKrw}
             displayCurrency={displayCurrency}
             usdToKrw={rate.usdToKrw}
           />

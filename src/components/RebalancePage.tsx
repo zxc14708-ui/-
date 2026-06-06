@@ -30,7 +30,13 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
     ? stocks.filter(s => s.accountId === selectedAccountId)
     : stocks;
 
-  const totalValueKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
+  const filteredAccounts = selectedAccountId
+    ? accounts.filter(a => a.id === selectedAccountId)
+    : accounts;
+
+  const filteredCashKrw = filteredAccounts.reduce((sum, a) => sum + (a.cashKrw ?? 0), 0);
+  const totalStocksKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
+  const totalValueKrw = totalStocksKrw + filteredCashKrw;
 
   // localStorage에서 불러오기 (종목 ID 기준으로 저장)
   const [targetWeights, setTargetWeights] = useState<Record<string, string>>(() => {
@@ -48,10 +54,12 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
     try { localStorage.setItem(WEIGHTS_KEY, JSON.stringify(targetWeights)); } catch {}
   }, [targetWeights]);
 
+  const CASH_KEY = '__cash__';
   const extraCashKrw = Number(extraCash) || 0;
   const totalTargetKrw = totalValueKrw + extraCashKrw;
 
-  const weightSum = filteredStocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0);
+  const weightSum = filteredStocks.reduce((sum, s) => sum + (Number(targetWeights[s.id]) || 0), 0)
+    + (Number(targetWeights[CASH_KEY]) || 0);
   const weightValid = Math.abs(weightSum - 100) < 0.15;
 
   function setWeight(id: string, value: string) {
@@ -106,7 +114,7 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
   const buys = trades.filter(t => t.type === 'buy');
   const cashFromSells = sells.reduce((sum, t) => sum + Math.abs(t.actualDiffKrw), 0);
   const cashForBuys = buys.reduce((sum, t) => sum + Math.abs(t.actualDiffKrw), 0);
-  const remainingCash = extraCashKrw + cashFromSells - cashForBuys;
+  const remainingCash = filteredCashKrw + extraCashKrw + cashFromSells - cashForBuys;
 
   // 계좌 탭 목록 — 보유 종목이 있는 계좌만
   const accountsWithStocks = accounts.filter(a => stocks.some(s => s.accountId === a.id));
@@ -191,7 +199,10 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
           <p className="text-gray-500 text-xs mb-0.5">
             {selectedAccountId ? accounts.find(a => a.id === selectedAccountId)?.name : '전체'} 평가금액
           </p>
-          <p className="text-white font-semibold tabular-nums">{fmt(totalValueKrw)}</p>
+          <p className="text-white font-semibold tabular-nums">{fmt(totalStocksKrw)}</p>
+          {filteredCashKrw > 0 && (
+            <p className="text-cyan-400 text-xs tabular-nums mt-0.5">현금 {fmt(filteredCashKrw)} 포함</p>
+          )}
         </div>
         <span className="text-gray-600 font-bold text-lg">+</span>
         <div>
@@ -305,6 +316,54 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
                   </tr>
                 );
               })}
+              {/* 현금 행 */}
+              {filteredCashKrw > 0 && (() => {
+                const currentWeight = totalValueKrw > 0 ? (filteredCashKrw / totalValueKrw) * 100 : 0;
+                const targetPct = Number(targetWeights[CASH_KEY]) || 0;
+                const targetValueKrw = (targetPct / 100) * totalTargetKrw;
+                const diffKrw = targetValueKrw - filteredCashKrw;
+                return (
+                  <tr className="border-b border-[#1a1d2e] bg-[#161929]">
+                    <td className="px-4 py-3 max-w-0 w-full">
+                      <div className="text-cyan-300 font-medium flex items-center gap-1.5">
+                        <span className="text-base">💵</span> 현금
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {filteredAccounts.filter(a => (a.cashKrw ?? 0) > 0).map(a => a.name).join(', ')}
+                      </div>
+                    </td>
+                    {!selectedAccountId && <td className="px-4 py-3" />}
+                    <td className="px-4 py-3 text-right text-cyan-300 tabular-nums whitespace-nowrap">
+                      {fmt(filteredCashKrw)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-400 tabular-nums whitespace-nowrap">
+                      {currentWeight.toFixed(1)}%
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={targetWeights[CASH_KEY] ?? ''}
+                          onChange={e => setWeight(CASH_KEY, e.target.value)}
+                          className="w-20 bg-[#0f1117] border border-[#2e3151] focus:border-blue-500 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums text-right"
+                        />
+                        <span className="text-gray-500 text-xs">%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-cyan-300 tabular-nums whitespace-nowrap">
+                      {fmt(targetValueKrw)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap font-semibold">
+                      <span className={diffKrw >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        {diffKrw >= 0 ? '+' : ''}{fmt(diffKrw)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })()}
             </tbody>
           </table>
         </div>
