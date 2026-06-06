@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useRef } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical, Pencil, TrendingDown } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
@@ -13,6 +13,7 @@ interface Props {
   onBuyMore: (stock: StockWithStats) => void;
   onEdit: (stock: StockWithStats) => void;
   onSell: (stock: StockWithStats) => void;
+  onUpdateAccount: (id: string, updates: { cashKrw?: number; cashUsd?: number }) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
 }
@@ -38,13 +39,15 @@ function loadColOrder(): ColKey[] {
   return DEFAULT_COL_ORDER;
 }
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEdit, onSell, displayCurrency, usdToKrw }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEdit, onSell, onUpdateAccount, displayCurrency, usdToKrw }: Props) {
   const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
   const [colOrder, setColOrder] = useState<ColKey[]>(loadColOrder);
   const [dragCol, setDragCol] = useState<ColKey | null>(null);
   const [dragOverCol, setDragOverCol] = useState<ColKey | null>(null);
+  const [editingCash, setEditingCash] = useState<{ key: string; value: string } | null>(null);
+  const cashInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = selectedAccountId
     ? stocks.filter(s => s.accountId === selectedAccountId)
@@ -54,12 +57,23 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     ? accounts.filter(a => a.id === selectedAccountId)
     : accounts;
 
-  // Build cash entries: one per (account, currency) pair where amount > 0
+  // Cash rows: always one KRW + one USD per filtered account (even if 0, so user can click to input)
   type CashEntry = { key: string; accountId: string; accountName: string; accountColor: string; currency: 'KRW' | 'USD'; amount: number; amountKrw: number };
   const cashEntries: CashEntry[] = [];
   for (const a of filteredAccounts) {
-    if ((a.cashKrw ?? 0) > 0) cashEntries.push({ key: `cash-krw-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'KRW', amount: a.cashKrw!, amountKrw: a.cashKrw! });
-    if ((a.cashUsd ?? 0) > 0) cashEntries.push({ key: `cash-usd-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'USD', amount: a.cashUsd!, amountKrw: a.cashUsd! * usdToKrw });
+    cashEntries.push({ key: `cash-krw-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'KRW', amount: a.cashKrw ?? 0, amountKrw: a.cashKrw ?? 0 });
+    cashEntries.push({ key: `cash-usd-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'USD', amount: a.cashUsd ?? 0, amountKrw: (a.cashUsd ?? 0) * usdToKrw });
+  }
+
+  function startEditCash(entry: CashEntry) {
+    setEditingCash({ key: entry.key, value: entry.amount > 0 ? String(entry.amount) : '' });
+    setTimeout(() => cashInputRef.current?.select(), 0);
+  }
+
+  function commitEditCash(entry: CashEntry, value: string) {
+    const parsed = parseFloat(value.replace(/,/g, '')) || 0;
+    onUpdateAccount(entry.accountId, entry.currency === 'KRW' ? { cashKrw: parsed } : { cashUsd: parsed });
+    setEditingCash(null);
   }
 
   const totalCashKrw = cashEntries.reduce((sum, e) => sum + e.amountKrw, 0);
@@ -260,9 +274,11 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
             </tr>
           </thead>
           <tbody>
-            {/* Cash rows pinned at top — styled identical to stock rows */}
+            {/* Cash rows pinned at top */}
             {cashEntries.map((entry, i) => {
               const weight = totalFilteredValue > 0 ? (entry.amountKrw / totalFilteredValue) * 100 : 0;
+              const isEditing = editingCash?.key === entry.key;
+              const hasValue = entry.amount > 0;
               return (
                 <tr key={entry.key} className={`border-b border-[#1a1d2e] transition-colors ${i % 2 === 0 ? 'bg-[#1a1d2e]' : 'bg-[#1c2036]'} hover:bg-[#2e3151]/60`}>
                   {!selectedAccountId && (
@@ -271,44 +287,65 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </td>
                   )}
                   <td className="px-4 py-3 max-w-0 w-full">
-                    <div className="text-white font-medium flex items-center gap-1.5">
+                    <div className="text-white font-medium">
                       {entry.currency === 'KRW' ? '현금 (원화)' : '현금 (달러)'}
                     </div>
                     <div className="text-gray-500 text-xs font-mono">{entry.accountName} · {entry.currency}</div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap">—</td>
                   {colOrder.map(col => {
-                    if (col === 'quantity') return (
-                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
-                    );
-                    if (col === 'avgCost') return (
-                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
-                    );
                     if (col === 'marketValueKrw') return (
-                      <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                        <div className="text-white">
-                          {entry.currency === 'KRW'
-                            ? `₩${entry.amount.toLocaleString()}`
-                            : `$${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                        </div>
-                        {entry.currency === 'USD' && (
-                          <div className="text-gray-500 text-xs mt-0.5">{fmtVal(entry.amountKrw)}</div>
+                      <td
+                        key={col}
+                        className="px-4 py-3 text-right tabular-nums whitespace-nowrap cursor-pointer"
+                        onClick={() => !isEditing && startEditCash(entry)}
+                        title="클릭하여 금액 입력"
+                      >
+                        {isEditing ? (
+                          <input
+                            ref={cashInputRef}
+                            type="number"
+                            min="0"
+                            step={entry.currency === 'USD' ? '0.01' : '1'}
+                            value={editingCash!.value}
+                            onChange={e => setEditingCash({ key: entry.key, value: e.target.value })}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') commitEditCash(entry, editingCash!.value);
+                              if (e.key === 'Escape') setEditingCash(null);
+                            }}
+                            onBlur={() => commitEditCash(entry, editingCash!.value)}
+                            className="w-28 bg-[#0f1117] border border-blue-500 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums text-right"
+                            autoFocus
+                          />
+                        ) : (
+                          <div className={`group flex flex-col items-end gap-0.5 ${hasValue ? '' : 'opacity-30 hover:opacity-70'}`}>
+                            <span className={hasValue ? 'text-white' : 'text-gray-400 text-xs'}>
+                              {hasValue
+                                ? entry.currency === 'KRW'
+                                  ? `₩${entry.amount.toLocaleString()}`
+                                  : `$${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : '클릭하여 입력'}
+                            </span>
+                            {entry.currency === 'USD' && hasValue && (
+                              <span className="text-gray-500 text-xs">{fmtVal(entry.amountKrw)}</span>
+                            )}
+                          </div>
                         )}
                       </td>
                     );
                     if (col === 'weightPct') return (
                       <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                        <div className="text-gray-300 text-sm">{weight.toFixed(1)}%</div>
-                        <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500 opacity-70" style={{ width: `${Math.min(weight, 100)}%` }} />
-                        </div>
+                        {hasValue ? (
+                          <>
+                            <div className="text-gray-300 text-sm">{weight.toFixed(1)}%</div>
+                            <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-blue-500 opacity-70" style={{ width: `${Math.min(weight, 100)}%` }} />
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-gray-700">—</span>
+                        )}
                       </td>
-                    );
-                    if (col === 'gainLossKrw') return (
-                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
-                    );
-                    if (col === 'gainLossPct') return (
-                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
                     );
                     return <td key={col} className="px-4 py-3 text-right text-gray-600">—</td>;
                   })}

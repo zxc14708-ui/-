@@ -369,6 +369,7 @@ export default function App() {
                 onBuyMore={setBuyMoreTarget}
                 onEdit={s => setEditTarget(s)}
                 onSell={s => setSellTarget(s)}
+                onUpdateAccount={updateAccount}
                 displayCurrency={displayCurrency}
                 usdToKrw={rate.usdToKrw}
               />
