@@ -47,9 +47,10 @@ export function usePortfolio(usdToKrw: number) {
       const prevClose = live?.prevClose ?? currentPrice;
       const changeRate = prevClose !== 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
       const changeAmt = currentPrice - prevClose;
-      const multiplier = s.currency === 'USD' ? usdToKrw : 1;
-      const costKrw = s.avgCost * s.quantity * multiplier;
-      const marketValueKrw = currentPrice * s.quantity * multiplier;
+      const fxForCost = s.currency === 'USD' ? (s.avgFxRate ?? usdToKrw) : 1;
+      const fxForValue = s.currency === 'USD' ? usdToKrw : 1;
+      const costKrw = s.avgCost * s.quantity * fxForCost;
+      const marketValueKrw = currentPrice * s.quantity * fxForValue;
       const gainLossKrw = marketValueKrw - costKrw;
       const gainLossPct = costKrw !== 0 ? (gainLossKrw / costKrw) * 100 : 0;
       return { ...s, currentPrice, prevClose, changeRate, changeAmt, costKrw, marketValueKrw, gainLossKrw, gainLossPct };

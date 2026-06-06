@@ -105,12 +105,17 @@ export default function App() {
     setTimeout(refreshPrices, 200);
   }
 
-  function handleBuyMore(id: string, addQty: number, addPrice: number) {
+  function handleBuyMore(id: string, addQty: number, addPrice: number, fxRate?: number) {
     const stock = stocks.find(s => s.id === id);
     if (!stock) return;
     const newQty = stock.quantity + addQty;
     const newAvgCost = (stock.quantity * stock.avgCost + addQty * addPrice) / newQty;
-    updateStock(id, { quantity: newQty, avgCost: newAvgCost });
+    const updates: Partial<import('./types').Stock> = { quantity: newQty, avgCost: newAvgCost };
+    if (stock.currency === 'USD' && fxRate && fxRate > 0) {
+      const oldFx = stock.avgFxRate ?? rate.usdToKrw;
+      updates.avgFxRate = (stock.quantity * oldFx + addQty * fxRate) / newQty;
+    }
+    updateStock(id, updates);
 
     const account = accounts.find(a => a.id === stock.accountId);
     const trade: Trade = {
@@ -415,6 +420,7 @@ export default function App() {
         <AddStockModal
           accounts={accounts}
           defaultAccountId={selectedAccountId ?? undefined}
+          usdToKrw={rate.usdToKrw}
           onAdd={handleAddStock}
           onClose={() => setShowAddStockModal(false)}
         />
@@ -430,6 +436,7 @@ export default function App() {
       {buyMoreTarget && (
         <BuyMoreModal
           stock={buyMoreTarget}
+          usdToKrw={rate.usdToKrw}
           onConfirm={handleBuyMore}
           onClose={() => setBuyMoreTarget(null)}
         />
@@ -438,6 +445,7 @@ export default function App() {
       {editTarget && (
         <EditStockModal
           stock={editTarget}
+          usdToKrw={rate.usdToKrw}
           onConfirm={handleEditStock}
           onClose={() => setEditTarget(null)}
         />

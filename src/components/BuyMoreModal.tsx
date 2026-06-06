@@ -4,19 +4,24 @@ import type { StockWithStats } from '../types';
 
 interface Props {
   stock: StockWithStats;
-  onConfirm: (id: string, addQty: number, addPrice: number) => void;
+  usdToKrw: number;
+  onConfirm: (id: string, addQty: number, addPrice: number, fxRate?: number) => void;
   onClose: () => void;
 }
 
-export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
+export function BuyMoreModal({ stock, usdToKrw, onConfirm, onClose }: Props) {
   const [qty, setQty] = useState('');
   const [price, setPrice] = useState('');
+  const [fxRate, setFxRate] = useState(() =>
+    stock.currency === 'USD' ? String(Math.round(usdToKrw)) : ''
+  );
 
   const isUSD = stock.currency === 'USD';
   const symbol = isUSD ? '$' : '₩';
 
   const addQty = Number(qty);
   const addPrice = Number(price);
+  const parsedFxRate = Number(fxRate);
   const valid = addQty > 0 && addPrice > 0;
 
   const newQty = stock.quantity + addQty;
@@ -24,10 +29,14 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
     ? (stock.quantity * stock.avgCost + addQty * addPrice) / newQty
     : stock.avgCost;
 
+  const newAvgFxRate = valid && isUSD && parsedFxRate > 0
+    ? (stock.quantity * (stock.avgFxRate ?? usdToKrw) + addQty * parsedFxRate) / newQty
+    : stock.avgFxRate;
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) return;
-    onConfirm(stock.id, addQty, addPrice);
+    onConfirm(stock.id, addQty, addPrice, isUSD && parsedFxRate > 0 ? parsedFxRate : undefined);
     onClose();
   }
 
@@ -56,7 +65,7 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
           </div>
 
           {/* 입력 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${isUSD ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div>
               <label className="text-gray-500 text-xs mb-1.5 block">추가 매수 수량 *</label>
               <input
@@ -83,6 +92,21 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
                 className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
               />
             </div>
+            {isUSD && (
+              <div>
+                <label className="text-gray-500 text-xs mb-1.5 block">매수 환율 (₩/$)</label>
+                <input
+                  type="number"
+                  name="buy-fx-rate"
+                  min="0"
+                  step="1"
+                  value={fxRate}
+                  onChange={e => setFxRate(e.target.value)}
+                  placeholder={String(Math.round(usdToKrw))}
+                  className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
+                />
+              </div>
+            )}
           </div>
 
           {/* 반영 후 미리보기 */}
@@ -101,6 +125,14 @@ export function BuyMoreModal({ stock, onConfirm, onClose }: Props) {
                   {symbol}{isUSD ? stock.avgCost.toFixed(5) : stock.avgCost.toLocaleString()} → <span className="text-blue-300 font-semibold">{symbol}{isUSD ? newAvgCost.toFixed(5) : Math.round(newAvgCost).toLocaleString()}</span>
                 </span>
               </div>
+              {isUSD && newAvgFxRate && (
+                <div className="flex justify-between text-gray-300">
+                  <span>평균 매수환율</span>
+                  <span className="text-white tabular-nums">
+                    ₩{Math.round(stock.avgFxRate ?? usdToKrw).toLocaleString()} → <span className="text-blue-300 font-semibold">₩{Math.round(newAvgFxRate).toLocaleString()}</span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

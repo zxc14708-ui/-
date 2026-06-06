@@ -7,11 +7,12 @@ import { searchYahooFinance, searchNaverFinance, isKoreanQuery, type StockEntry 
 interface Props {
   accounts: Account[];
   defaultAccountId?: string;
+  usdToKrw: number;
   onAdd: (stock: Stock) => void;
   onClose: () => void;
 }
 
-export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Props) {
+export function AddStockModal({ accounts, defaultAccountId, usdToKrw, onAdd, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<StockEntry[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -26,6 +27,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
   const [quantity, setQuantity] = useState('');
   const [totalAmount, setTotalAmount] = useState(''); // raw number string (no commas)
   const [avgCost, setAvgCost] = useState('');
+  const [fxRate, setFxRate] = useState('');
   const [memo, setMemo] = useState('');
 
   function formatAmount(raw: string): string {
@@ -111,12 +113,6 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
     }, 400);
   }
 
-  function handleSelect(item: ReturnType<typeof searchStocks>[0]) {
-    setSelected(item);
-    setQuery(`${item.ticker} · ${item.nameKo}`);
-    setShowSuggestions(false);
-  }
-
   function handleClear() {
     setSelected(null);
     setQuery('');
@@ -130,9 +126,19 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
   const currency = selected?.currency ?? 'KRW';
   const isUSD = currency === 'USD';
 
+  // USD 종목 선택 시 현재 환율로 fxRate 초기화
+  function handleSelect(item: ReturnType<typeof searchStocks>[0]) {
+    setSelected(item);
+    setQuery(`${item.ticker} · ${item.nameKo}`);
+    setShowSuggestions(false);
+    if (item.currency === 'USD') setFxRate(String(Math.round(usdToKrw)));
+    else setFxRate('');
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected || !quantity || !avgCost || !accountId) return;
+    const parsedFxRate = Number(fxRate);
     const stock: Stock = {
       id: 's' + Date.now(),
       ticker: selected.ticker,
@@ -142,6 +148,7 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
       accountId,
       quantity: Number(quantity),
       avgCost: Number(avgCost),
+      avgFxRate: isUSD && parsedFxRate > 0 ? parsedFxRate : undefined,
       currentPrice: Number(avgCost),
       currency: selected.currency,
       memo: memo.trim() || undefined,
@@ -325,6 +332,25 @@ export function AddStockModal({ accounts, defaultAccountId, onAdd, onClose }: Pr
               value={avgCost} onChange={handleAvgCostChange}
               placeholder="0" type="number" step="0.0000000001"
             />
+          )}
+
+          {/* 매수환율 (USD 종목만) */}
+          {isUSD && (
+            <div>
+              <label className="text-gray-500 text-xs mb-1.5 block">
+                매수 환율 <span className="text-gray-600">(₩/$) — 환차익 계산에 사용</span>
+              </label>
+              <input
+                type="number"
+                name="fx-rate"
+                min="0"
+                step="1"
+                value={fxRate}
+                onChange={e => setFxRate(e.target.value)}
+                placeholder={String(Math.round(usdToKrw))}
+                className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
+              />
+            </div>
           )}
 
           {/* 투자 근거 */}

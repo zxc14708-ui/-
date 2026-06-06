@@ -4,17 +4,21 @@ import type { StockWithStats, Stock } from '../types';
 
 interface Props {
   stock: StockWithStats;
+  usdToKrw: number;
   onConfirm: (id: string, updates: Partial<Stock>) => void;
   onClose: () => void;
 }
 
-export function EditStockModal({ stock, onConfirm, onClose }: Props) {
+export function EditStockModal({ stock, usdToKrw, onConfirm, onClose }: Props) {
   const isUSD = stock.currency === 'USD';
   const symbol = isUSD ? '$' : '₩';
 
   const [nameKo, setNameKo] = useState(stock.nameKo);
   const [quantity, setQuantity] = useState(String(stock.quantity));
   const [avgCost, setAvgCost] = useState(String(stock.avgCost));
+  const [avgFxRate, setAvgFxRate] = useState(
+    isUSD ? String(Math.round(stock.avgFxRate ?? usdToKrw)) : ''
+  );
   const [currentPrice, setCurrentPrice] = useState(String(stock.currentPrice));
   const [memo, setMemo] = useState(stock.memo ?? '');
 
@@ -35,10 +39,12 @@ export function EditStockModal({ stock, onConfirm, onClose }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) return;
+    const parsedFxRate = Number(avgFxRate);
     const updates: Partial<Stock> = {
       nameKo: nameKo.trim(),
       quantity: newQty,
       avgCost: newAvgCost,
+      avgFxRate: isUSD && parsedFxRate > 0 ? parsedFxRate : undefined,
       memo: memo.trim() || undefined,
     };
     if (newCurrentPrice > 0) {
@@ -105,6 +111,25 @@ export function EditStockModal({ stock, onConfirm, onClose }: Props) {
               />
             </div>
           </div>
+
+          {/* 평균 매수환율 (USD 종목만) */}
+          {isUSD && (
+            <div>
+              <label className="text-gray-500 text-xs mb-1.5 block">
+                평균 매수환율 (₩/$)
+                <span className="ml-1 text-gray-600">— 환차익 계산에 사용</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={avgFxRate}
+                onChange={e => setAvgFxRate(e.target.value)}
+                placeholder={String(Math.round(usdToKrw))}
+                className="w-full bg-[#0f1117] border border-[#2e3151] text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-700"
+              />
+            </div>
+          )}
 
           {/* 현재가 수동입력 */}
           <div>

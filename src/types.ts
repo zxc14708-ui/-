@@ -6,7 +6,8 @@ export interface Stock {
   market: 'KRX' | 'NYSE' | 'NASDAQ' | 'KOSDAQ';
   accountId: string;
   quantity: number;
-  avgCost: number;        // 평균매수가 (원화)
+  avgCost: number;        // 평균매수가 (종목 통화)
+  avgFxRate?: number;     // USD 종목 평균 매수환율 (₩/$) — 환차익 계산용
   currentPrice: number;   // 현재가
   currency: 'KRW' | 'USD';
   sector?: string;
