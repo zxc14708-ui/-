@@ -37,6 +37,7 @@ export interface Account {
   broker: string;
   color: string;
   cashKrw?: number;
+  cashUsd?: number;
 }
 
 export interface ExchangeRate {
