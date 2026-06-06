@@ -92,7 +92,7 @@ export function usePortfolio(usdToKrw: number) {
     setStocks(prev => prev.filter(s => s.accountId !== id));
   }, []);
 
-  const updateAccount = useCallback((id: string, updates: { name?: string; color?: string }) => {
+  const updateAccount = useCallback((id: string, updates: { name?: string; color?: string; cashKrw?: number }) => {
     setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
   }, []);
 
@@ -115,6 +115,10 @@ export function usePortfolio(usdToKrw: number) {
     totalValueKrw - totalGainLossKrw,
   [totalValueKrw, totalGainLossKrw]);
 
+  const totalCashKrw = useMemo(() =>
+    accounts.reduce((sum, a) => sum + (a.cashKrw ?? 0), 0),
+  [accounts]);
+
   return {
     stocks: stocksWithStats,
     rawStocks: stocks,
@@ -130,5 +134,6 @@ export function usePortfolio(usdToKrw: number) {
     totalValueKrw,
     totalGainLossKrw,
     totalCostKrw,
+    totalCashKrw,
   };
 }

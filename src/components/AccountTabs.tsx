@@ -18,7 +18,7 @@ interface Props {
   onSelect: (id: string | null) => void;
   onAddAccount: () => void;
   onDeleteAccount: (id: string) => void;
-  onUpdateAccount: (id: string, updates: { name?: string; color?: string }) => void;
+  onUpdateAccount: (id: string, updates: { name?: string; color?: string; cashKrw?: number }) => void;
   onReorderAccounts: (orderedIds: string[]) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
@@ -33,6 +33,7 @@ export function AccountTabs({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingColor, setEditingColor] = useState('');
+  const [editingCash, setEditingCash] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // drag state
@@ -40,6 +41,7 @@ export function AccountTabs({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const totalValue = stocks.reduce((s, st) => s + st.marketValueKrw, 0);
+  const totalCash = accounts.reduce((s, a) => s + (a.cashKrw ?? 0), 0);
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
   useEffect(() => {
@@ -61,12 +63,14 @@ export function AccountTabs({
     setEditingId(acc.id);
     setEditingName(acc.name);
     setEditingColor(acc.color);
+    setEditingCash(acc.cashKrw ? String(acc.cashKrw) : '');
   }
 
   function commitEdit() {
     if (!editingId) return;
     const name = editingName.trim();
-    if (name) onUpdateAccount(editingId, { name, color: editingColor });
+    const cashKrw = Number(editingCash.replace(/,/g, '')) || 0;
+    if (name) onUpdateAccount(editingId, { name, color: editingColor, cashKrw });
     setEditingId(null);
   }
 
@@ -120,6 +124,9 @@ export function AccountTabs({
         >
           전체 계좌
           <span className="text-xs opacity-75 tabular-nums ml-2">{fmt(totalValue)}</span>
+          {totalCash > 0 && (
+            <span className="text-xs text-cyan-500/80 tabular-nums ml-1">+현금 {fmt(totalCash)}</span>
+          )}
         </button>
 
         {accounts.map(acc => {
@@ -177,6 +184,9 @@ export function AccountTabs({
                       </span>
                     )}
                     <span className="text-gray-600">{cnt}종목</span>
+                    {(acc.cashKrw ?? 0) > 0 && (
+                      <span className="text-cyan-500/80">현금 {fmt(acc.cashKrw!)}</span>
+                    )}
                   </span>
                 </div>
               </button>
@@ -227,7 +237,19 @@ export function AccountTabs({
                       </button>
                     ))}
                   </div>
-                  <div className="flex gap-2 mt-2.5 pt-2 border-t border-[#2e3151]">
+                  <div className="mt-2.5 pt-2 border-t border-[#2e3151]">
+                    <p className="text-gray-500 text-xs mb-1.5">현금 잔고 (₩)</p>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editingCash}
+                      onChange={e => setEditingCash(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      placeholder="0"
+                      className="w-full bg-[#1a1d2e] border border-[#2e3151] text-white text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500 placeholder:text-gray-600 tabular-nums"
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-2">
                     <button
                       onClick={e => { e.stopPropagation(); cancelEdit(); }}
                       className="flex-1 py-1 text-xs text-gray-400 hover:text-white border border-[#2e3151] rounded-lg transition-colors"
