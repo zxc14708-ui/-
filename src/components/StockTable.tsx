@@ -50,7 +50,12 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     ? stocks.filter(s => s.accountId === selectedAccountId)
     : stocks;
 
-  const totalFilteredValue = filtered.reduce((sum, s) => sum + s.marketValueKrw, 0);
+  const cashAccounts = selectedAccountId
+    ? accounts.filter(a => a.id === selectedAccountId && (a.cashKrw ?? 0) > 0)
+    : accounts.filter(a => (a.cashKrw ?? 0) > 0);
+
+  const totalCashKrw = cashAccounts.reduce((sum, a) => sum + (a.cashKrw ?? 0), 0);
+  const totalFilteredValue = filtered.reduce((sum, s) => sum + s.marketValueKrw, 0) + totalCashKrw;
 
   const sorted = [...filtered].sort((a, b) => {
     const av = sortKey === 'weightPct' ? a.marketValueKrw : a[sortKey] as number | string;
@@ -339,11 +344,48 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                 </tr>
               );
             })}
-          </tbody>
-        </table>
-        {sorted.length === 0 && (
-          <div className="py-12 text-center text-gray-600">보유 종목이 없습니다</div>
-        )}
+              {cashAccounts.map(acc => {
+                const cash = acc.cashKrw ?? 0;
+                const weight = totalFilteredValue > 0 ? (cash / totalFilteredValue) * 100 : 0;
+                return (
+                  <tr key={`cash-${acc.id}`} className="border-b border-[#1a1d2e] bg-[#1a1d2e] hover:bg-[#2e3151]/60 transition-colors">
+                    {!selectedAccountId && (
+                      <td className="px-4 py-3">
+                        <div className="w-2 h-2 rounded-full" style={{ background: acc.color }} title={acc.name} />
+                      </td>
+                    )}
+                    <td className="px-4 py-3 max-w-0 w-full">
+                      <div className="text-cyan-300 font-medium flex items-center gap-1.5">
+                        💵 현금
+                      </div>
+                      <div className="text-gray-500 text-xs">{acc.name}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
+                    {colOrder.map(col => {
+                      if (col === 'marketValueKrw') return (
+                        <td key={col} className="px-4 py-3 text-right text-cyan-300 font-semibold tabular-nums whitespace-nowrap">
+                          {fmtVal(cash)}
+                        </td>
+                      );
+                      if (col === 'weightPct') return (
+                        <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+                          <div className="text-gray-300 text-sm">{weight.toFixed(1)}%</div>
+                          <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-cyan-500 opacity-70" style={{ width: `${Math.min(weight, 100)}%` }} />
+                          </div>
+                        </td>
+                      );
+                      return <td key={col} className="px-4 py-3 text-right text-gray-600">—</td>;
+                    })}
+                    <td className="px-4 py-3" />
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {sorted.length === 0 && cashAccounts.length === 0 && (
+            <div className="py-12 text-center text-gray-600">보유 종목이 없습니다</div>
+          )}
       </div>
     </div>
   );
