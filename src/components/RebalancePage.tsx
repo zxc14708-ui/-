@@ -34,7 +34,7 @@ export function RebalancePage({ stocks, accounts, displayCurrency, usdToKrw }: P
     ? accounts.filter(a => a.id === selectedAccountId)
     : accounts;
 
-  const filteredCashKrw = filteredAccounts.reduce((sum, a) => sum + (a.cashKrw ?? 0), 0);
+  const filteredCashKrw = filteredAccounts.reduce((sum, a) => sum + (a.cashKrw ?? 0) + (a.cashUsd ?? 0) * usdToKrw, 0);
   const totalStocksKrw = filteredStocks.reduce((sum, s) => sum + s.marketValueKrw, 0);
   const totalValueKrw = totalStocksKrw + filteredCashKrw;
 
