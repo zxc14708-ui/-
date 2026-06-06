@@ -260,28 +260,36 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
             </tr>
           </thead>
           <tbody>
-            {/* Cash rows pinned at top */}
-            {cashEntries.map(entry => {
+            {/* Cash rows pinned at top — styled identical to stock rows */}
+            {cashEntries.map((entry, i) => {
               const weight = totalFilteredValue > 0 ? (entry.amountKrw / totalFilteredValue) * 100 : 0;
               return (
-                <tr key={entry.key} className="border-b border-[#1a1d2e] bg-[#161929] hover:bg-[#2e3151]/60 transition-colors">
+                <tr key={entry.key} className={`border-b border-[#1a1d2e] transition-colors ${i % 2 === 0 ? 'bg-[#1a1d2e]' : 'bg-[#1c2036]'} hover:bg-[#2e3151]/60`}>
                   {!selectedAccountId && (
                     <td className="px-4 py-3">
                       <div className="w-2 h-2 rounded-full" style={{ background: entry.accountColor }} title={entry.accountName} />
                     </td>
                   )}
                   <td className="px-4 py-3 max-w-0 w-full">
-                    <div className="text-cyan-300 font-medium flex items-center gap-1.5">
-                      {entry.currency === 'KRW' ? '💴 현금 (원화)' : '💵 현금 (달러)'}
+                    <div className="text-white font-medium flex items-center gap-1.5">
+                      {entry.currency === 'KRW' ? '현금 (원화)' : '현금 (달러)'}
                     </div>
-                    <div className="text-gray-500 text-xs">{entry.accountName}</div>
+                    <div className="text-gray-500 text-xs font-mono">{entry.accountName} · {entry.currency}</div>
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
+                  <td className="px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap">—</td>
                   {colOrder.map(col => {
+                    if (col === 'quantity') return (
+                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
+                    );
+                    if (col === 'avgCost') return (
+                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
+                    );
                     if (col === 'marketValueKrw') return (
                       <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                        <div className="text-cyan-300 font-semibold">
-                          {entry.currency === 'KRW' ? `₩${entry.amount.toLocaleString()}` : `$${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        <div className="text-white">
+                          {entry.currency === 'KRW'
+                            ? `₩${entry.amount.toLocaleString()}`
+                            : `$${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         </div>
                         {entry.currency === 'USD' && (
                           <div className="text-gray-500 text-xs mt-0.5">{fmtVal(entry.amountKrw)}</div>
@@ -292,9 +300,15 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                       <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
                         <div className="text-gray-300 text-sm">{weight.toFixed(1)}%</div>
                         <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-cyan-500 opacity-70" style={{ width: `${Math.min(weight, 100)}%` }} />
+                          <div className="h-full rounded-full bg-blue-500 opacity-70" style={{ width: `${Math.min(weight, 100)}%` }} />
                         </div>
                       </td>
+                    );
+                    if (col === 'gainLossKrw') return (
+                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
+                    );
+                    if (col === 'gainLossPct') return (
+                      <td key={col} className="px-4 py-3 text-right text-gray-600 tabular-nums">—</td>
                     );
                     return <td key={col} className="px-4 py-3 text-right text-gray-600">—</td>;
                   })}
