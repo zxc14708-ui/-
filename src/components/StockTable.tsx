@@ -57,26 +57,30 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
     ? accounts.filter(a => a.id === selectedAccountId)
     : accounts;
 
-  // Cash rows: always one KRW + one USD per filtered account (even if 0, so user can click to input)
-  type CashEntry = { key: string; accountId: string; accountName: string; accountColor: string; currency: 'KRW' | 'USD'; amount: number; amountKrw: number };
-  const cashEntries: CashEntry[] = [];
-  for (const a of filteredAccounts) {
-    cashEntries.push({ key: `cash-krw-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'KRW', amount: a.cashKrw ?? 0, amountKrw: a.cashKrw ?? 0 });
-    cashEntries.push({ key: `cash-usd-${a.id}`, accountId: a.id, accountName: a.name, accountColor: a.color, currency: 'USD', amount: a.cashUsd ?? 0, amountKrw: (a.cashUsd ?? 0) * usdToKrw });
-  }
+  // One cash row per filtered account (shows both KRW and USD in the same row)
+  type CashEntry = { key: string; accountId: string; accountName: string; accountColor: string; cashKrw: number; cashUsd: number; totalKrw: number };
+  const cashEntries: CashEntry[] = filteredAccounts.map(a => ({
+    key: `cash-${a.id}`,
+    accountId: a.id,
+    accountName: a.name,
+    accountColor: a.color,
+    cashKrw: a.cashKrw ?? 0,
+    cashUsd: a.cashUsd ?? 0,
+    totalKrw: (a.cashKrw ?? 0) + (a.cashUsd ?? 0) * usdToKrw,
+  }));
 
-  function startEditCash(entry: CashEntry) {
-    setEditingCash({ key: entry.key, value: entry.amount > 0 ? String(entry.amount) : '' });
+  function startEditCash(accountId: string, field: 'krw' | 'usd', currentVal: number) {
+    setEditingCash({ key: `${accountId}-${field}`, value: currentVal > 0 ? String(currentVal) : '' });
     setTimeout(() => cashInputRef.current?.select(), 0);
   }
 
-  function commitEditCash(entry: CashEntry, value: string) {
+  function commitEditCash(accountId: string, field: 'krw' | 'usd', value: string) {
     const parsed = parseFloat(value.replace(/,/g, '')) || 0;
-    onUpdateAccount(entry.accountId, entry.currency === 'KRW' ? { cashKrw: parsed } : { cashUsd: parsed });
+    onUpdateAccount(accountId, field === 'krw' ? { cashKrw: parsed } : { cashUsd: parsed });
     setEditingCash(null);
   }
 
-  const totalCashKrw = cashEntries.reduce((sum, e) => sum + e.amountKrw, 0);
+  const totalCashKrw = cashEntries.reduce((sum, e) => sum + e.totalKrw, 0);
   const totalFilteredValue = filtered.reduce((sum, s) => sum + s.marketValueKrw, 0) + totalCashKrw;
 
   const sorted = [...filtered].sort((a, b) => {
@@ -274,11 +278,19 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
             </tr>
           </thead>
           <tbody>
-            {/* Cash rows pinned at top */}
+            {/* Cash rows pinned at top — one row per account, KRW + USD both editable inline */}
             {cashEntries.map((entry, i) => {
-              const weight = totalFilteredValue > 0 ? (entry.amountKrw / totalFilteredValue) * 100 : 0;
-              const isEditing = editingCash?.key === entry.key;
-              const hasValue = entry.amount > 0;
+              const weight = totalFilteredValue > 0 ? (entry.totalKrw / totalFilteredValue) * 100 : 0;
+              const editingKrw = editingCash?.key === `${entry.accountId}-krw`;
+              const editingUsd = editingCash?.key === `${entry.accountId}-usd`;
+
+              const krwDisplay = entry.cashKrw > 0
+                ? `₩${entry.cashKrw.toLocaleString()}`
+                : null;
+              const usdDisplay = entry.cashUsd > 0
+                ? `$${entry.cashUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : null;
+
               return (
                 <tr key={entry.key} className={`border-b border-[#1a1d2e] transition-colors ${i % 2 === 0 ? 'bg-[#1a1d2e]' : 'bg-[#1c2036]'} hover:bg-[#2e3151]/60`}>
                   {!selectedAccountId && (
@@ -287,55 +299,68 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                     </td>
                   )}
                   <td className="px-4 py-3 max-w-0 w-full">
-                    <div className="text-white font-medium">
-                      {entry.currency === 'KRW' ? '현금 (원화)' : '현금 (달러)'}
-                    </div>
-                    <div className="text-gray-500 text-xs font-mono">{entry.accountName} · {entry.currency}</div>
+                    <div className="text-white font-medium">현금</div>
+                    <div className="text-gray-500 text-xs font-mono">{entry.accountName}</div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap">—</td>
                   {colOrder.map(col => {
                     if (col === 'marketValueKrw') return (
-                      <td
-                        key={col}
-                        className="px-4 py-3 text-right tabular-nums whitespace-nowrap cursor-pointer"
-                        onClick={() => !isEditing && startEditCash(entry)}
-                        title="클릭하여 금액 입력"
-                      >
-                        {isEditing ? (
-                          <input
-                            ref={cashInputRef}
-                            type="number"
-                            min="0"
-                            step={entry.currency === 'USD' ? '0.01' : '1'}
-                            value={editingCash!.value}
-                            onChange={e => setEditingCash({ key: entry.key, value: e.target.value })}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') commitEditCash(entry, editingCash!.value);
-                              if (e.key === 'Escape') setEditingCash(null);
-                            }}
-                            onBlur={() => commitEditCash(entry, editingCash!.value)}
-                            className="w-28 bg-[#0f1117] border border-blue-500 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums text-right"
-                            autoFocus
-                          />
-                        ) : (
-                          <div className={`group flex flex-col items-end gap-0.5 ${hasValue ? '' : 'opacity-30 hover:opacity-70'}`}>
-                            <span className={hasValue ? 'text-white' : 'text-gray-400 text-xs'}>
-                              {hasValue
-                                ? entry.currency === 'KRW'
-                                  ? `₩${entry.amount.toLocaleString()}`
-                                  : `$${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : '클릭하여 입력'}
-                            </span>
-                            {entry.currency === 'USD' && hasValue && (
-                              <span className="text-gray-500 text-xs">{fmtVal(entry.amountKrw)}</span>
-                            )}
-                          </div>
-                        )}
+                      <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
+                        <div className="flex flex-col items-end gap-1">
+                          {/* 원화 */}
+                          {editingKrw ? (
+                            <input
+                              ref={cashInputRef}
+                              type="number" min="0" step="1"
+                              value={editingCash!.value}
+                              onChange={e => setEditingCash({ key: `${entry.accountId}-krw`, value: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') commitEditCash(entry.accountId, 'krw', editingCash!.value);
+                                if (e.key === 'Escape') setEditingCash(null);
+                              }}
+                              onBlur={() => commitEditCash(entry.accountId, 'krw', editingCash!.value)}
+                              className="w-28 bg-[#0f1117] border border-blue-500 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums text-right"
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              onClick={() => startEditCash(entry.accountId, 'krw', entry.cashKrw)}
+                              className={`text-right tabular-nums hover:text-blue-300 transition-colors ${krwDisplay ? 'text-white' : 'text-gray-600 text-xs'}`}
+                              title="원화 현금 수정"
+                            >
+                              {krwDisplay ?? '₩ 입력'}
+                            </button>
+                          )}
+                          {/* 달러 */}
+                          {editingUsd ? (
+                            <input
+                              ref={cashInputRef}
+                              type="number" min="0" step="0.01"
+                              value={editingCash!.value}
+                              onChange={e => setEditingCash({ key: `${entry.accountId}-usd`, value: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') commitEditCash(entry.accountId, 'usd', editingCash!.value);
+                                if (e.key === 'Escape') setEditingCash(null);
+                              }}
+                              onBlur={() => commitEditCash(entry.accountId, 'usd', editingCash!.value)}
+                              className="w-28 bg-[#0f1117] border border-blue-500 text-white text-sm rounded-lg px-2 py-1 outline-none tabular-nums text-right"
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              onClick={() => startEditCash(entry.accountId, 'usd', entry.cashUsd)}
+                              className={`text-right tabular-nums hover:text-blue-300 transition-colors ${usdDisplay ? 'text-gray-300' : 'text-gray-600 text-xs'}`}
+                              title="달러 현금 수정"
+                            >
+                              {usdDisplay ?? '$ 입력'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     );
                     if (col === 'weightPct') return (
                       <td key={col} className="px-4 py-3 text-right tabular-nums whitespace-nowrap">
-                        {hasValue ? (
+                        {entry.totalKrw > 0 ? (
                           <>
                             <div className="text-gray-300 text-sm">{weight.toFixed(1)}%</div>
                             <div className="mt-1 h-1 w-16 ml-auto bg-[#2e3151] rounded-full overflow-hidden">
