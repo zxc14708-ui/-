@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -33,6 +33,7 @@ interface PieEntry {
 
 export function AllocationChart({ stocks, accounts, displayCurrency, usdToKrw }: Props) {
   const [tab, setTab] = useState<TabType>('계좌별');
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const fmt = (n: number) => fmtAmountFull(n, displayCurrency, usdToKrw);
 
@@ -101,7 +102,7 @@ export function AllocationChart({ stocks, accounts, displayCurrency, usdToKrw }:
         {/* Donut chart */}
         <div className="relative flex-shrink-0" style={{ width: 200, height: 200 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart onMouseLeave={() => setActiveIndex(null)}>
               <Pie
                 data={pieData}
                 cx="50%"
@@ -111,27 +112,43 @@ export function AllocationChart({ stocks, accounts, displayCurrency, usdToKrw }:
                 paddingAngle={2}
                 dataKey="value"
                 stroke="none"
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
               >
                 {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.45}
+                    style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
+                  />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: '#0f1117',
-                  border: '1px solid #2e3151',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-                formatter={(value) => [fmt(Number(value ?? 0)), '']}
-              />
             </PieChart>
           </ResponsiveContainer>
-          {/* Center label */}
+          {/* Center label — shows hovered slice info, else total */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center">
-              <div className="text-white font-bold text-sm tabular-nums">{fmt(totalValueKrw)}</div>
-              <div className="text-gray-500 text-xs">총 평가</div>
+            <div className="text-center px-2">
+              {activeIndex !== null && pieData[activeIndex] ? (
+                <>
+                  <div className="text-white font-bold text-sm tabular-nums leading-tight">
+                    {fmt(pieData[activeIndex].value)}
+                  </div>
+                  <div className="text-xs tabular-nums" style={{ color: pieData[activeIndex].color }}>
+                    {totalValueKrw > 0
+                      ? ((pieData[activeIndex].value / totalValueKrw) * 100).toFixed(1)
+                      : '0'}%
+                  </div>
+                  <div className="text-gray-400 text-xs truncate max-w-[90px]">
+                    {pieData[activeIndex].name}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-white font-bold text-sm tabular-nums">{fmt(totalValueKrw)}</div>
+                  <div className="text-gray-500 text-xs">총 평가</div>
+                </>
+              )}
             </div>
           </div>
         </div>
