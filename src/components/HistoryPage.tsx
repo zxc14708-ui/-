@@ -11,6 +11,64 @@ import { fetchSpxHistory, fetchKospiHistory, getIndexPrice } from '../utils/spxD
 
 type Period = 'day' | 'month' | 'year';
 
+const FIXED_HOLIDAYS: Record<string, string> = {
+  '01-01': '신정',
+  '03-01': '삼일절',
+  '05-05': '어린이날',
+  '06-06': '현충일',
+  '08-15': '광복절',
+  '10-03': '개천절',
+  '10-09': '한글날',
+  '12-25': '크리스마스',
+};
+
+const VARIABLE_HOLIDAYS: Record<string, string> = {
+  // 2022
+  '2022-01-31': '설날 연휴', '2022-02-01': '설날', '2022-02-02': '설날 연휴',
+  '2022-03-09': '대통령선거일',
+  '2022-05-08': '부처님오신날',
+  '2022-06-01': '지방선거일',
+  '2022-09-09': '추석 연휴', '2022-09-10': '추석', '2022-09-11': '추석 연휴', '2022-09-12': '대체공휴일',
+  // 2023
+  '2023-01-21': '설날 연휴', '2023-01-22': '설날', '2023-01-23': '설날 연휴', '2023-01-24': '대체공휴일',
+  '2023-05-27': '부처님오신날', '2023-05-29': '대체공휴일',
+  '2023-09-28': '추석 연휴', '2023-09-29': '추석', '2023-09-30': '추석 연휴', '2023-10-02': '임시공휴일',
+  // 2024
+  '2024-02-09': '설날 연휴', '2024-02-10': '설날', '2024-02-11': '설날 연휴', '2024-02-12': '대체공휴일',
+  '2024-04-10': '국회의원선거일',
+  '2024-05-06': '대체공휴일',
+  '2024-05-15': '부처님오신날',
+  '2024-09-16': '추석 연휴', '2024-09-17': '추석', '2024-09-18': '추석 연휴',
+  // 2025
+  '2025-01-28': '설날 연휴', '2025-01-29': '설날', '2025-01-30': '설날 연휴',
+  '2025-05-05': '부처님오신날', '2025-05-06': '대체공휴일',
+  '2025-10-05': '추석 연휴', '2025-10-06': '추석', '2025-10-07': '추석 연휴', '2025-10-08': '대체공휴일',
+  // 2026
+  '2026-02-17': '설날 연휴', '2026-02-18': '설날', '2026-02-19': '설날 연휴',
+  '2026-05-24': '부처님오신날',
+  '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴',
+};
+
+const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+function DateCell({ date }: { date: string }) {
+  const d = new Date(date + 'T00:00:00');
+  const dayIdx = d.getDay();
+  const day = DAYS_KO[dayIdx];
+  const isWeekend = dayIdx === 0 || dayIdx === 6;
+  const mmdd = date.slice(5);
+  const holiday = VARIABLE_HOLIDAYS[date] ?? FIXED_HOLIDAYS[mmdd] ?? null;
+  const isRed = isWeekend || holiday !== null;
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={isRed ? 'text-red-400' : 'text-gray-300'}>{date}</span>
+      <span className={`text-xs font-medium ${isRed ? 'text-red-400' : 'text-gray-500'}`}>({day})</span>
+      {holiday && <span className="text-red-400 text-xs opacity-90">{holiday}</span>}
+    </span>
+  );
+}
+
 interface Props {
   snapshots: DailySnapshot[];
   accounts: Account[];
@@ -557,8 +615,8 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                         i % 2 === 0 ? 'bg-[#1a1d2e]' : 'bg-[#1c2036]'
                       }`}
                     >
-                      <td className="px-4 py-2.5 text-gray-300 text-xs tabular-nums whitespace-nowrap">
-                        {period === 'day' ? snap.date : dateLabel(snap.date, period)}
+                      <td className="px-4 py-2.5 text-xs tabular-nums whitespace-nowrap">
+                        {period === 'day' ? <DateCell date={snap.date} /> : <span className="text-gray-300">{dateLabel(snap.date, period)}</span>}
                       </td>
                       {visibleAccountIds.map(id => {
                         const a = snap.accounts.find(x => x.id === id);
@@ -616,8 +674,8 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                         i % 2 === 0 ? 'bg-[#1a1d2e]' : 'bg-[#1c2036]'
                       }`}
                     >
-                      <td className="px-4 py-2.5 text-gray-300 text-xs tabular-nums whitespace-nowrap">
-                        {period === 'day' ? snap.date : dateLabel(snap.date, period)}
+                      <td className="px-4 py-2.5 text-xs tabular-nums whitespace-nowrap">
+                        {period === 'day' ? <DateCell date={snap.date} /> : <span className="text-gray-300">{dateLabel(snap.date, period)}</span>}
                       </td>
                       <td className="px-4 py-2.5 text-right text-white text-xs tabular-nums font-medium">
                         {fmt(val)}
