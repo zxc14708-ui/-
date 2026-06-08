@@ -4,6 +4,7 @@ import { useExchangeRate } from './hooks/useExchangeRate';
 import { usePortfolio } from './hooks/usePortfolio';
 import { usePriceRefresher } from './hooks/usePriceRefresher';
 import { useSnapshots } from './hooks/useSnapshots';
+import { useJournal } from './hooks/useJournal';
 import { fetchKoreanName } from './utils/yahooFinance';
 import { exportPortfolioCSV } from './utils/exportCsv';
 import { ExchangeRateBar } from './components/ExchangeRateBar';
@@ -67,6 +68,7 @@ export default function App() {
   }, [rawStocks, updateStock]);
 
   const { snapshots, takeSnapshot } = useSnapshots(stocks, accounts, rate.usdToKrw, lastUpdated !== null);
+  const { entries: journalEntries, addEntry, updateEntry, deleteEntry } = useJournal();
 
   const [page, setPage] = useState<Page>('portfolio');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -337,7 +339,15 @@ export default function App() {
       )}
 
       {/* Journal page */}
-      {page === 'journal' && <JournalPage />}
+      {page === 'journal' && (
+        <JournalPage
+          entries={journalEntries}
+          onAdd={addEntry}
+          onUpdate={updateEntry}
+          onDelete={deleteEntry}
+          stocks={stocks}
+        />
+      )}
 
       {/* Rebalance page */}
       {page === 'rebalance' && (
