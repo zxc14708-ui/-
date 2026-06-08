@@ -1,5 +1,5 @@
 import { useState, Fragment, useRef } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical, Pencil, TrendingDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, PlusCircle, GripVertical, Pencil } from 'lucide-react';
 import type { StockWithStats, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -12,7 +12,6 @@ interface Props {
   onDelete: (id: string) => void;
   onBuyMore: (stock: StockWithStats) => void;
   onEdit: (stock: StockWithStats) => void;
-  onSell: (stock: StockWithStats) => void;
   onUpdateAccount: (id: string, updates: { cashKrw?: number; cashUsd?: number }) => void;
   displayCurrency: DisplayCurrency;
   usdToKrw: number;
@@ -39,7 +38,7 @@ function loadColOrder(): ColKey[] {
   return DEFAULT_COL_ORDER;
 }
 
-export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEdit, onSell, onUpdateAccount, displayCurrency, usdToKrw }: Props) {
+export function StockTable({ stocks, accounts, selectedAccountId, highlightId, onDelete, onBuyMore, onEdit, onUpdateAccount, displayCurrency, usdToKrw }: Props) {
   const fmtVal = (krw: number) => fmtAmountFull(krw, displayCurrency, usdToKrw);
   const [sortKey, setSortKey] = useState<SortKey>('marketValueKrw');
   const [sortDir, setSortDir] = useState<Dir>('desc');
@@ -443,13 +442,6 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                         title="수정"
                       >
                         <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => onSell(stock)}
-                        className="text-gray-600 hover:text-orange-400 transition-colors p-1 rounded"
-                        title="매도"
-                      >
-                        <TrendingDown size={13} />
                       </button>
                       <button
                         onClick={() => onBuyMore(stock)}
