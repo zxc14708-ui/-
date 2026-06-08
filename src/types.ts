@@ -39,6 +39,24 @@ export interface StockWithStats extends Stock {
   gainLossPct: number;
 }
 
+export interface JournalEntry {
+  id: string;
+  date: string;           // YYYY-MM-DD
+  ticker: string;
+  nameKo: string;
+  type: 'buy' | 'sell' | 'analysis' | 'watch';
+  price?: number;
+  quantity?: number;
+  targetPrice?: number;
+  stopLoss?: number;
+  reason: string;
+  confidence: number;     // 1–5
+  review: string;
+  tags: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AccountSnapshot {
   id: string;
   name: string;
