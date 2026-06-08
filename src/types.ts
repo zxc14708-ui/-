@@ -14,23 +14,6 @@ export interface Stock {
   memo?: string;
 }
 
-export interface Trade {
-  id: string;
-  stockId: string;
-  ticker: string;
-  nameKo: string;
-  market: 'KRX' | 'NYSE' | 'NASDAQ' | 'KOSDAQ';
-  currency: 'KRW' | 'USD';
-  accountId: string;
-  accountName: string;
-  type: 'buy' | 'sell';
-  quantity: number;
-  price: number;        // in stock's native currency
-  usdToKrw: number;
-  createdAt: number;    // Unix ms
-  realizedPnlKrw?: number; // only for sells
-  memo?: string;
-}
 
 export interface Account {
   id: string;
