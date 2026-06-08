@@ -14,6 +14,7 @@ import { StockTreemap } from './components/StockTreemap';
 import { StockTable } from './components/StockTable';
 import { HistoryPage } from './components/HistoryPage';
 import { RebalancePage } from './components/RebalancePage';
+import { JournalPage } from './components/JournalPage';
 import { AllocationChart } from './components/AllocationChart';
 import { AddStockModal } from './components/AddStockModal';
 import { AddAccountModal } from './components/AddAccountModal';
@@ -24,7 +25,7 @@ import type { DisplayCurrency } from './utils/currency';
 import type { Stock, StockWithStats } from './types';
 import './index.css';
 
-type Page = 'portfolio' | 'history' | 'rebalance';
+type Page = 'portfolio' | 'history' | 'rebalance' | 'journal';
 
 export default function App() {
   const [refreshIntervalMs, setRefreshIntervalMs] = useState<number | null>(() => {
@@ -125,6 +126,7 @@ export default function App() {
     { id: 'portfolio', label: '보유현황' },
     { id: 'history', label: '계좌 수익률' },
     { id: 'rebalance', label: '리밸런싱' },
+    { id: 'journal', label: '매매일지' },
   ];
 
   return (
@@ -333,6 +335,9 @@ export default function App() {
           usdToKrw={rate.usdToKrw}
         />
       )}
+
+      {/* Journal page */}
+      {page === 'journal' && <JournalPage />}
 
       {/* Rebalance page */}
       {page === 'rebalance' && (
