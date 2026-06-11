@@ -217,6 +217,21 @@ export default {
       if (request.method !== 'GET') {
         return jsonResponse({ error: 'toss 프록시는 GET(읽기)만 허용' }, 405);
       }
+      // 진단: secret 주입 상태만 확인 (값은 노출하지 않음)
+      if (tossPath === '__debug') {
+        const id = (env && env.TOSS_CLIENT_ID) || '';
+        const secret = (env && env.TOSS_CLIENT_SECRET) || '';
+        return jsonResponse({
+          hasClientId: !!id,
+          clientIdLen: id.length,
+          clientIdTrimmedLen: id.trim().length,
+          clientIdPrefix: id.slice(0, 5),
+          hasClientSecret: !!secret,
+          clientSecretLen: secret.length,
+          clientSecretTrimmedLen: secret.trim().length,
+          idEqualsSecret: !!id && id === secret,
+        });
+      }
       // searchParams.get 은 첫 '?' 이후 한 토큰만 디코딩하므로, 원본에서 toss= 이후 전체를 추출
       const rawQuery = reqUrl.search; // e.g. ?toss=/api/v1/stocks?symbols=005930
       const tossRaw = rawQuery.slice(rawQuery.indexOf('toss=') + 'toss='.length);
