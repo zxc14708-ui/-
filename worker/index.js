@@ -38,17 +38,17 @@ async function fetchTossToken(env) {
     throw new Error('TOSS_CLIENT_ID / TOSS_CLIENT_SECRET 미설정 (Worker secret 등록 필요)');
   }
 
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: env.TOSS_CLIENT_ID,
-    client_secret: env.TOSS_CLIENT_SECRET,
-  });
+  // 토스 토큰 엔드포인트는 HTTP Basic 인증(Authorization: Basic base64(id:secret))을 요구.
+  // grant_type 만 body 로 전달 (curl -u 'ID:SECRET' -d 'grant_type=client_credentials' 와 동일)
+  const basic = btoa(`${env.TOSS_CLIENT_ID}:${env.TOSS_CLIENT_SECRET}`);
+  const body = new URLSearchParams({ grant_type: 'client_credentials' });
 
   const res = await fetch(`${TOSS_BASE}/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
+      Authorization: `Basic ${basic}`,
     },
     body,
   });
