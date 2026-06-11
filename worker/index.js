@@ -1,15 +1,124 @@
 /**
  * my-stock-proxy — Cloudflare Worker
  *
- * 역할: CORS 우회 프록시 + Yahoo Finance crumb/cookie 자동 인증
+ * 역할:
+ *   1) CORS 우회 프록시 + Yahoo Finance crumb/cookie 자동 인증  (?url=...)
+ *   2) 토스증권 Open API OAuth2 토큰 발급/캐싱 + 인증 프록시      (?toss=/api/...)
+ *      - GET(읽기) 전용 → 이 경로로는 주문 실행 불가
+ *      - 자격증명은 Worker secret(env)에서만 읽음
+ *
+ * 필요한 Worker secret (Cloudflare Dashboard → Worker → Settings → Variables):
+ *   TOSS_CLIENT_ID      (Encrypt)
+ *   TOSS_CLIENT_SECRET  (Encrypt)
  *
  * 배포 방법:
  *   Cloudflare Dashboard → Workers & Pages → my-stock-proxy → Edit code
  *   → 이 파일 전체를 붙여넣기 → Save and deploy
+ *
+ * 연결 테스트(배포 후, 브라우저 주소창):
+ *   https://my-stock-proxy.zxc14708.workers.dev/?toss=/api/v1/stocks?symbols=005930
  */
 
 // Worker 인스턴스 메모리에 crumb 캐시 (최대 25분)
 let yahooAuth = null; // { crumb, cookie, expiry }
+
+// 토스증권 Open API access token 캐시 (instance memory)
+let tossToken = null; // { token, expiry }
+
+const TOSS_BASE = 'https://openapi.tossinvest.com';
+
+// ---------------------------------------------------------------------------
+// 토스증권 Open API 인증 (OAuth2 Client Credentials)
+//   - client_id / client_secret 은 Worker secret(env)에서만 읽음 (코드에 하드코딩 금지)
+//   - access token 을 instance 메모리에 캐시하고 만료 60초 전 갱신
+// ---------------------------------------------------------------------------
+
+async function fetchTossToken(env) {
+  if (!env || !env.TOSS_CLIENT_ID || !env.TOSS_CLIENT_SECRET) {
+    throw new Error('TOSS_CLIENT_ID / TOSS_CLIENT_SECRET 미설정 (Worker secret 등록 필요)');
+  }
+
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: env.TOSS_CLIENT_ID,
+    client_secret: env.TOSS_CLIENT_SECRET,
+  });
+
+  const res = await fetch(`${TOSS_BASE}/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+    },
+    body,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`token HTTP ${res.status}: ${text.slice(0, 120)}`);
+  }
+
+  const data = await res.json();
+  const token = data.access_token;
+  if (!token) throw new Error('token 응답에 access_token 없음');
+
+  // expires_in(초) - 60초 버퍼. 없으면 보수적으로 30분.
+  const ttlMs = (Number(data.expires_in) > 0 ? Number(data.expires_in) - 60 : 30 * 60) * 1000;
+  return { token, expiry: Date.now() + ttlMs };
+}
+
+async function getTossToken(env) {
+  if (tossToken && Date.now() < tossToken.expiry) return tossToken.token;
+  tossToken = await fetchTossToken(env);
+  return tossToken.token;
+}
+
+/**
+ * 토스 Open API 프록시 — GET 전용(읽기 전용)으로 제한해 주문 실행 경로를 차단.
+ * 사용법: ?toss=/api/v1/stocks?symbols=005930
+ */
+async function handleToss(rawPath, env) {
+  // GET 전용이므로 호출 시점에서 메서드 검증은 메인 핸들러가 수행
+  let path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+
+  // 안전장치: openapi.tossinvest.com 외 호스트로의 우회 차단 (절대경로 입력 방지)
+  if (/^https?:/i.test(rawPath)) {
+    return jsonResponse({ error: 'toss 경로는 절대 URL이 아닌 경로(/api/...)만 허용' }, 400);
+  }
+
+  try {
+    const token = await getTossToken(env);
+    const res = await fetch(`${TOSS_BASE}${path}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+
+    // 401 → 토큰 만료 가능성, 1회 갱신 후 재시도
+    let finalRes = res;
+    if (res.status === 401) {
+      tossToken = null;
+      const fresh = await getTossToken(env);
+      finalRes = await fetch(`${TOSS_BASE}${path}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${fresh}`, Accept: 'application/json' },
+      });
+    }
+
+    const headers = { ...corsHeaders() };
+    const ct = finalRes.headers.get('Content-Type');
+    if (ct) headers['Content-Type'] = ct;
+    return new Response(finalRes.body, { status: finalRes.status, headers });
+  } catch (e) {
+    return jsonResponse({ error: 'toss proxy 실패', message: e.message }, 502);
+  }
+}
+
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Yahoo Finance 인증 (crumb + cookie)
@@ -94,13 +203,26 @@ function corsHeaders() {
 // ---------------------------------------------------------------------------
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders() });
     }
 
     const reqUrl = new URL(request.url);
+
+    // 토스증권 Open API 경로: ?toss=/api/v1/stocks?symbols=005930  (GET 전용)
+    const tossPath = reqUrl.searchParams.get('toss');
+    if (tossPath !== null) {
+      if (request.method !== 'GET') {
+        return jsonResponse({ error: 'toss 프록시는 GET(읽기)만 허용' }, 405);
+      }
+      // searchParams.get 은 첫 '?' 이후 한 토큰만 디코딩하므로, 원본에서 toss= 이후 전체를 추출
+      const rawQuery = reqUrl.search; // e.g. ?toss=/api/v1/stocks?symbols=005930
+      const tossRaw = rawQuery.slice(rawQuery.indexOf('toss=') + 'toss='.length);
+      return handleToss(decodeURIComponent(tossRaw), env);
+    }
+
     const target = reqUrl.searchParams.get('url');
 
     if (!target) {
