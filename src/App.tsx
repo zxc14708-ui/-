@@ -5,7 +5,7 @@ import { usePortfolio } from './hooks/usePortfolio';
 import { usePriceRefresher } from './hooks/usePriceRefresher';
 import { useSnapshots } from './hooks/useSnapshots';
 import { useJournal } from './hooks/useJournal';
-import { fetchKoreanName } from './utils/yahooFinance';
+import { fetchTossStockName } from './utils/tossApi';
 import { exportPortfolioCSV } from './utils/exportCsv';
 import { ExchangeRateBar } from './components/ExchangeRateBar';
 import { SummaryCards } from './components/SummaryCards';
@@ -54,7 +54,8 @@ export default function App() {
   const { isRefreshing, lastUpdated, error: priceError, refresh: refreshPrices } =
     usePriceRefresher(rawStocks, bulkUpdateLiveData, refreshIntervalMs);
 
-  // 한글명 없는 US 종목 자동 보정 (앱 로드 시 1회)
+  // 한글명 없는 US 종목 이름 보정 (앱 로드 시 1회) — 토스 종목명 사용.
+  // 토스는 집 IP로 호출돼 403이 없고, 프록시 꺼져 있으면 조용히 생략된다.
   const enrichedRef = useRef(false);
   useEffect(() => {
     if (enrichedRef.current || !rawStocks.length) return;
@@ -62,8 +63,8 @@ export default function App() {
     rawStocks
       .filter(s => (s.market === 'NYSE' || s.market === 'NASDAQ') && !/[가-힣]/.test(s.nameKo))
       .forEach(async stock => {
-        const nameKo = await fetchKoreanName(stock.ticker);
-        if (nameKo) updateStock(stock.id, { nameKo });
+        const name = await fetchTossStockName(stock.ticker);
+        if (name && name !== stock.nameKo) updateStock(stock.id, { nameKo: name });
       });
   }, [rawStocks, updateStock]);
 
