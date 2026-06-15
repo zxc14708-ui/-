@@ -135,6 +135,23 @@ export async function fetchTossLivePrices(tickers: string[]): Promise<Map<string
   return out;
 }
 
+/**
+ * 종목명 조회 (토스). 국내는 한글명, 미국은 영문 약칭을 준다.
+ *   예) 005930 → "삼성전자", TSM → "TSMC(ADR)"
+ * 실패(프록시 꺼짐 등) 시 null → 호출부에서 보정 생략.
+ */
+export async function fetchTossStockName(ticker: string): Promise<string | null> {
+  try {
+    const json = await tossFetch<{ result?: Array<{ name?: string }> }>(
+      `/api/v1/stocks?symbols=${encodeURIComponent(ticker)}`
+    );
+    const name = json?.result?.[0]?.name;
+    return name && name.trim() ? name.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** USD→KRW 환율 (토스). 실패 시 null → 호출부에서 er-api 폴백. */
 export async function fetchTossExchangeRate(): Promise<number | null> {
   try {
