@@ -16,31 +16,30 @@ let yahooAuth = null; // { crumb, cookie, expiry }
 // ---------------------------------------------------------------------------
 
 async function fetchYahooAuth() {
-  // 1단계: fc.yahoo.com 에서 쿠키 취득
-  const initRes = await fetch('https://fc.yahoo.com', {
+  // 1단계: finance.yahoo.com 에서 쿠키 취득
+  const initRes = await fetch('https://finance.yahoo.com/', {
     headers: browserHeaders(),
     redirect: 'follow',
   });
 
-  // set-cookie 헤더에서 쿠키 추출 (Cloudflare Workers는 복수 Set-Cookie를 하나로 합칠 수 있음)
   const rawCookie = initRes.headers.get('set-cookie') ?? '';
   const cookie = parseCookies(rawCookie);
 
-  // 2단계: crumb 취득
-  const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-    headers: { ...browserHeaders(), Cookie: cookie },
-  });
+  // 2단계: crumb 취득 (query1 → query2 순서로 시도)
+  for (const host of ['query1', 'query2']) {
+    const crumbRes = await fetch(`https://${host}.finance.yahoo.com/v1/test/getcrumb`, {
+      headers: { ...browserHeaders(), Cookie: cookie },
+    });
 
-  if (!crumbRes.ok) {
-    throw new Error(`crumb HTTP ${crumbRes.status}`);
+    if (!crumbRes.ok) continue;
+
+    const crumb = (await crumbRes.text()).trim();
+    if (!crumb || crumb.startsWith('<') || crumb.length > 100) continue;
+
+    return { crumb, cookie, expiry: Date.now() + 25 * 60 * 1000 };
   }
 
-  const crumb = (await crumbRes.text()).trim();
-  if (!crumb || crumb.startsWith('<') || crumb.length > 100) {
-    throw new Error(`invalid crumb: ${crumb.slice(0, 40)}`);
-  }
-
-  return { crumb, cookie, expiry: Date.now() + 25 * 60 * 1000 };
+  throw new Error('crumb 취득 실패 (query1, query2 모두 실패)');
 }
 
 async function getYahooAuth() {
