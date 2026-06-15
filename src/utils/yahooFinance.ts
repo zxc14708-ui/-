@@ -93,15 +93,24 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   if (!stocks.length) return new Map();
 
   const result = new Map<string, LivePrice>();
+  const korean = stocks.filter(s => s.market === 'KRX' || s.market === 'KOSDAQ');
+  const us = stocks.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ');
   const CHUNK = 5;
 
-  // 1) 토스(로컬 프록시)로 국내+미국 시세를 한 번에 배치 조회.
+  // 1) 토스(로컬 프록시)로 시세 배치 조회. 국내·미국을 "시장별로 분리" 호출한다.
+  //    (혼합 배치에서 미국 종목이 누락되는 문제 회피)
   //    현재가는 묶어서 호출하고 전일종가는 캐싱해 레이트리밋(429)을 피한다.
   //    프록시가 꺼져 있으면 빈 Map 이 반환돼 전부 폴백으로 넘어간다.
   const tossFailed: Stock[] = [];
-  const tossPrices = await fetchTossLivePrices(stocks.map(s => s.ticker));
-  for (const s of stocks) {
-    const lp = tossPrices.get(s.ticker);
+  const krToss = await fetchTossLivePrices(korean.map(s => s.ticker));
+  const usToss = await fetchTossLivePrices(us.map(s => s.ticker));
+  for (const s of korean) {
+    const lp = krToss.get(s.ticker);
+    if (lp) result.set(s.id, lp);
+    else tossFailed.push(s);
+  }
+  for (const s of us) {
+    const lp = usToss.get(s.ticker);
     if (lp) result.set(s.id, lp);
     else tossFailed.push(s);
   }
