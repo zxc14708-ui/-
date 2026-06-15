@@ -80,25 +80,69 @@ function pickPrevClose(candles: TossCandle[]): number | null {
   return parseNum(candles[1]?.closePrice);
 }
 
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+// 전일종가 캐시 — 하루에 한 번만 캔들을 받아 재사용 (key: `${symbol}|${YYYY-MM-DD}`)
+const prevCloseCache = new Map<string, number>();
+
 /**
- * 국내 주식 현재가 + 전일종가 조회.
- *   - 현재가: /prices 의 lastPrice (실시간)
- *   - 전일종가: /candles(1d) 의 직전 거래일 종가
- * 둘 다 성공해야 LivePrice 반환. 실패 시 null → 호출부에서 Naver/Yahoo 폴백.
+ * 국내 주식 시세 일괄 조회 (토스 레이트리밋 회피용 설계).
+ *   1) 현재가: /prices?symbols=A,B,C  로 묶어서 호출 (20개씩) → 호출 수 최소화
+ *   2) 전일종가: /candles 는 종목당 1회지만 하루 동안 캐시 → 첫 로드 후엔 재호출 없음
+ *      (첫 로드 시에도 2개씩 끊어 250ms 간격으로 호출해 429 방지)
+ * 반환: ticker → LivePrice (조회 성공한 종목만). 실패분은 호출부에서 Naver/Yahoo 폴백.
  */
-export async function fetchTossKrPrice(ticker: string): Promise<LivePrice | null> {
-  try {
-    const [priceJson, candleJson] = await Promise.all([
-      tossFetch<TossPriceResp>(`/api/v1/prices?symbols=${encodeURIComponent(ticker)}`),
-      tossFetch<TossCandleResp>(`/api/v1/candles?symbol=${encodeURIComponent(ticker)}&interval=1d`),
-    ]);
-    const price = parseNum(priceJson?.result?.[0]?.lastPrice);
-    if (price == null) return null;
-    const prevClose = pickPrevClose(candleJson?.result?.candles ?? []) ?? price;
-    return { price, prevClose };
-  } catch {
-    return null;
+export async function fetchTossKrLivePrices(tickers: string[]): Promise<Map<string, LivePrice>> {
+  const out = new Map<string, LivePrice>();
+  if (!tickers.length) return out;
+
+  // 1) 현재가 배치 조회
+  const priceMap = new Map<string, number>();
+  const PRICE_BATCH = 20;
+  for (let i = 0; i < tickers.length; i += PRICE_BATCH) {
+    const batch = tickers.slice(i, i + PRICE_BATCH);
+    try {
+      const json = await tossFetch<TossPriceResp>(
+        `/api/v1/prices?symbols=${batch.map(encodeURIComponent).join(',')}`
+      );
+      for (const r of json?.result ?? []) {
+        const p = parseNum(r.lastPrice);
+        if (p != null && r.symbol != null) priceMap.set(String(r.symbol), p);
+      }
+    } catch {
+      /* 이 배치 실패(프록시 꺼짐/429 등) → 해당 종목은 폴백 대상 */
+    }
   }
+  if (!priceMap.size) return out; // 토스 전체 실패 → 폴백
+
+  // 2) 전일종가: 캐시에 없는 종목만 캔들 조회 (소량씩 throttle)
+  const todayKST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const need = [...priceMap.keys()].filter(t => !prevCloseCache.has(`${t}|${todayKST}`));
+  const CANDLE_CHUNK = 2;
+  for (let i = 0; i < need.length; i += CANDLE_CHUNK) {
+    const chunk = need.slice(i, i + CANDLE_CHUNK);
+    await Promise.allSettled(
+      chunk.map(async t => {
+        try {
+          const json = await tossFetch<TossCandleResp>(
+            `/api/v1/candles?symbol=${encodeURIComponent(t)}&interval=1d`
+          );
+          const pc = pickPrevClose(json?.result?.candles ?? []);
+          if (pc != null) prevCloseCache.set(`${t}|${todayKST}`, pc);
+        } catch {
+          /* 전일종가 실패 → 현재가로 대체(등락률 0%), 가격 표시는 유지 */
+        }
+      })
+    );
+    if (i + CANDLE_CHUNK < need.length) await sleep(250);
+  }
+
+  // 3) LivePrice 구성 (전일종가 없으면 현재가로 대체)
+  for (const [ticker, price] of priceMap) {
+    const prevClose = prevCloseCache.get(`${ticker}|${todayKST}`) ?? price;
+    out.set(ticker, { price, prevClose });
+  }
+  return out;
 }
 
 /** USD→KRW 환율 (토스). 실패 시 null → 호출부에서 er-api 폴백. */
