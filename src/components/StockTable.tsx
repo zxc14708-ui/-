@@ -399,10 +399,10 @@ export function StockTable({ stocks, accounts, selectedAccountId, highlightId, o
                   )}
                   <td className="px-4 py-3 max-w-0 w-full">
                     <a
-                      href={`https://finance.yahoo.com/quote/${
-                        stock.market === 'KRX' ? `${stock.ticker}.KS` :
-                        stock.market === 'KOSDAQ' ? `${stock.ticker}.KQ` :
-                        stock.ticker
+                      href={`https://tossinvest.com/stocks/${
+                        stock.market === 'KRX' || stock.market === 'KOSDAQ'
+                          ? `A${stock.ticker}`
+                          : stock.ticker
                       }`}
                       target="_blank"
                       rel="noopener noreferrer"
