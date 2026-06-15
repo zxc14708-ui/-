@@ -1,5 +1,5 @@
 import type { Stock } from '../types';
-import { fetchTossKrLivePrices } from './tossApi';
+import { fetchTossLivePrices } from './tossApi';
 
 export interface LivePrice {
   price: number;
@@ -93,25 +93,24 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   if (!stocks.length) return new Map();
 
   const result = new Map<string, LivePrice>();
-  const korean = stocks.filter(s => s.market === 'KRX' || s.market === 'KOSDAQ');
-  const us = stocks.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ');
   const CHUNK = 5;
 
-  // 국내 주식: 토스(로컬 프록시) → Naver → Yahoo 순으로 폴백.
-  // 현재가는 한 번에 묶어 호출하고 전일종가는 캐싱해 토스 레이트리밋(429)을 피한다.
-  // 프록시가 꺼져 있으면 빈 Map 이 반환돼 전부 Naver 로 넘어간다.
+  // 1) 토스(로컬 프록시)로 국내+미국 시세를 한 번에 배치 조회.
+  //    현재가는 묶어서 호출하고 전일종가는 캐싱해 레이트리밋(429)을 피한다.
+  //    프록시가 꺼져 있으면 빈 Map 이 반환돼 전부 폴백으로 넘어간다.
   const tossFailed: Stock[] = [];
-  const tossPrices = await fetchTossKrLivePrices(korean.map(s => s.ticker));
-  for (const s of korean) {
+  const tossPrices = await fetchTossLivePrices(stocks.map(s => s.ticker));
+  for (const s of stocks) {
     const lp = tossPrices.get(s.ticker);
     if (lp) result.set(s.id, lp);
     else tossFailed.push(s);
   }
 
-  // Naver fallback for Korean stocks Toss couldn't serve
+  // 2) 국내 폴백: 토스 실패분 → Naver → Yahoo
+  const koreanFailed = tossFailed.filter(s => s.market === 'KRX' || s.market === 'KOSDAQ');
   const naverFailed: Stock[] = [];
-  for (let i = 0; i < tossFailed.length; i += CHUNK) {
-    const chunk = tossFailed.slice(i, i + CHUNK);
+  for (let i = 0; i < koreanFailed.length; i += CHUNK) {
+    const chunk = koreanFailed.slice(i, i + CHUNK);
     const settled = await Promise.allSettled(chunk.map(fetchNaver));
     settled.forEach((r, idx) => {
       if (r.status === 'fulfilled' && r.value)
@@ -121,17 +120,13 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
     });
   }
 
-  // Yahoo fallback for Korean stocks Naver couldn't serve
-  for (let i = 0; i < naverFailed.length; i += CHUNK) {
-    const settled = await Promise.allSettled(naverFailed.slice(i, i + CHUNK).map(fetchYahoo));
-    settled.forEach(r => {
-      if (r.status === 'fulfilled' && r.value)
-        result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });
-    });
-  }
-
-  for (let i = 0; i < us.length; i += CHUNK) {
-    const settled = await Promise.allSettled(us.slice(i, i + CHUNK).map(fetchYahoo));
+  // 3) 미국 폴백 + 국내 Naver 실패분 → Yahoo
+  const yahooTargets = [
+    ...tossFailed.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ'),
+    ...naverFailed,
+  ];
+  for (let i = 0; i < yahooTargets.length; i += CHUNK) {
+    const settled = await Promise.allSettled(yahooTargets.slice(i, i + CHUNK).map(fetchYahoo));
     settled.forEach(r => {
       if (r.status === 'fulfilled' && r.value)
         result.set(r.value.id, { price: r.value.price, prevClose: r.value.prevClose });

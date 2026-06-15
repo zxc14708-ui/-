@@ -62,22 +62,12 @@ interface TossRateResp {
 
 /**
  * 캔들 배열(최신순)에서 "직전 거래일 종가"를 고른다.
- *   - candles[0] 이 오늘이면 candles[1] = 전일종가
- *   - 오늘 캔들이 아직 없으면(장 시작 전) candles[0] = 전일종가
- *   → 한국 시각 기준 오늘보다 이전 날짜의 첫 캔들 종가를 사용
+ * 시장(국내/미국) 무관하게 동작하도록 시간대 비교 없이 둘째 캔들을 사용한다.
+ *   - candles[0] = 현재(또는 가장 최근) 세션, candles[1] = 직전 세션 종가 = 전일종가
+ *   - lastPrice 가 candles[0] 세션에 대응하므로 candles[1] 이 전일종가로 일관됨
  */
 function pickPrevClose(candles: TossCandle[]): number | null {
-  if (!candles.length) return null;
-  const todayKST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); // YYYY-MM-DD
-  for (const c of candles) {
-    const d = (c.timestamp ?? '').slice(0, 10);
-    if (d && d < todayKST) {
-      const n = parseNum(c.closePrice);
-      if (n != null) return n;
-    }
-  }
-  // 폴백: 두 번째 캔들
-  return parseNum(candles[1]?.closePrice);
+  return parseNum(candles[1]?.closePrice) ?? parseNum(candles[0]?.closePrice);
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -86,13 +76,13 @@ const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const prevCloseCache = new Map<string, number>();
 
 /**
- * 국내 주식 시세 일괄 조회 (토스 레이트리밋 회피용 설계).
+ * 주식 시세 일괄 조회 (국내·미국 공통, 토스 레이트리밋 회피용 설계).
  *   1) 현재가: /prices?symbols=A,B,C  로 묶어서 호출 (20개씩) → 호출 수 최소화
  *   2) 전일종가: /candles 는 종목당 1회지만 하루 동안 캐시 → 첫 로드 후엔 재호출 없음
  *      (첫 로드 시에도 2개씩 끊어 250ms 간격으로 호출해 429 방지)
  * 반환: ticker → LivePrice (조회 성공한 종목만). 실패분은 호출부에서 Naver/Yahoo 폴백.
  */
-export async function fetchTossKrLivePrices(tickers: string[]): Promise<Map<string, LivePrice>> {
+export async function fetchTossLivePrices(tickers: string[]): Promise<Map<string, LivePrice>> {
   const out = new Map<string, LivePrice>();
   if (!tickers.length) return out;
 
