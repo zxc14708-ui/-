@@ -1,5 +1,5 @@
 import type { Stock } from '../types';
-import { fetchTossKrPrice } from './tossApi';
+import { fetchTossKrLivePrices } from './tossApi';
 
 export interface LivePrice {
   price: number;
@@ -98,17 +98,14 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   const CHUNK = 5;
 
   // 국내 주식: 토스(로컬 프록시) → Naver → Yahoo 순으로 폴백.
-  // 토스 프록시가 꺼져 있으면 fetchTossKrPrice 가 빠르게 null 을 반환해 Naver 로 넘어간다.
+  // 현재가는 한 번에 묶어 호출하고 전일종가는 캐싱해 토스 레이트리밋(429)을 피한다.
+  // 프록시가 꺼져 있으면 빈 Map 이 반환돼 전부 Naver 로 넘어간다.
   const tossFailed: Stock[] = [];
-  for (let i = 0; i < korean.length; i += CHUNK) {
-    const chunk = korean.slice(i, i + CHUNK);
-    const settled = await Promise.allSettled(chunk.map(s => fetchTossKrPrice(s.ticker)));
-    settled.forEach((r, idx) => {
-      if (r.status === 'fulfilled' && r.value)
-        result.set(chunk[idx].id, r.value);
-      else
-        tossFailed.push(chunk[idx]);
-    });
+  const tossPrices = await fetchTossKrLivePrices(korean.map(s => s.ticker));
+  for (const s of korean) {
+    const lp = tossPrices.get(s.ticker);
+    if (lp) result.set(s.id, lp);
+    else tossFailed.push(s);
   }
 
   // Naver fallback for Korean stocks Toss couldn't serve
