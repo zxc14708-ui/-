@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ExchangeRate } from '../types';
+import { fetchTossExchangeRate } from '../utils/tossApi';
 
 const FALLBACK_RATE = 1380;
 // open.er-api.com free plan: 1,500 req/month, data updates daily.
@@ -21,6 +22,14 @@ export function useExchangeRate(intervalMs: number | null) {
     inFlight.current = true;
     setIsRefreshing(true);
     try {
+      // 1차: 토스 환율(로컬 프록시) — 약 5분마다 갱신. 프록시 꺼져 있으면 null.
+      const tossRate = await fetchTossExchangeRate();
+      if (tossRate) {
+        setRate({ usdToKrw: tossRate, updatedAt: new Date().toISOString() });
+        setError(null);
+        return;
+      }
+      // 2차: open.er-api.com (무료, 하루 1회 갱신)
       const res = await fetch(
         'https://open.er-api.com/v6/latest/USD',
         { signal: AbortSignal.timeout(5000) }
