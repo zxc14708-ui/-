@@ -1,4 +1,5 @@
 import type { Stock } from '../types';
+import { fetchTossKrPrice } from './tossApi';
 
 export interface LivePrice {
   price: number;
@@ -96,10 +97,24 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   const us = stocks.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ');
   const CHUNK = 5;
 
-  // Try Naver first for Korean stocks; fall back to Yahoo if Naver fails
-  const naverFailed: Stock[] = [];
+  // 국내 주식: 토스(로컬 프록시) → Naver → Yahoo 순으로 폴백.
+  // 토스 프록시가 꺼져 있으면 fetchTossKrPrice 가 빠르게 null 을 반환해 Naver 로 넘어간다.
+  const tossFailed: Stock[] = [];
   for (let i = 0; i < korean.length; i += CHUNK) {
     const chunk = korean.slice(i, i + CHUNK);
+    const settled = await Promise.allSettled(chunk.map(s => fetchTossKrPrice(s.ticker)));
+    settled.forEach((r, idx) => {
+      if (r.status === 'fulfilled' && r.value)
+        result.set(chunk[idx].id, r.value);
+      else
+        tossFailed.push(chunk[idx]);
+    });
+  }
+
+  // Naver fallback for Korean stocks Toss couldn't serve
+  const naverFailed: Stock[] = [];
+  for (let i = 0; i < tossFailed.length; i += CHUNK) {
+    const chunk = tossFailed.slice(i, i + CHUNK);
     const settled = await Promise.allSettled(chunk.map(fetchNaver));
     settled.forEach((r, idx) => {
       if (r.status === 'fulfilled' && r.value)
