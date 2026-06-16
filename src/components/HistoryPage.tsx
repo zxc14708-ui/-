@@ -86,6 +86,19 @@ function weekMondayOf(dateStr: string): string {
   return mon.toISOString().split('T')[0];
 }
 
+function isoWeekInfo(dateStr: string): { year: number; week: number } {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay() || 7;
+  const thu = new Date(d);
+  thu.setDate(d.getDate() + 4 - day);
+  const year = thu.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const jan1Day = jan1.getDay() || 7;
+  const firstThu = new Date(year, 0, 1 + (4 - jan1Day + 7) % 7);
+  const week = Math.round((thu.getTime() - firstThu.getTime()) / 604_800_000) + 1;
+  return { year, week };
+}
+
 function aggregateByPeriod(snapshots: DailySnapshot[], period: 'week' | 'month' | 'year'): DailySnapshot[] {
   const map = new Map<string, DailySnapshot>();
   for (const snap of snapshots) {
@@ -104,9 +117,8 @@ function dateLabel(date: string, period: Period): string {
     return `${y}년 ${parseInt(m)}월`;
   }
   if (period === 'week') {
-    const mon = weekMondayOf(date);
-    const [, m, d] = mon.split('-');
-    return `${parseInt(m)}/${parseInt(d)}주`;
+    const { year, week } = isoWeekInfo(weekMondayOf(date));
+    return `${year}년 ${week}주차`;
   }
   const [, m, d] = date.split('-');
   return `${parseInt(m)}/${parseInt(d)}`;
