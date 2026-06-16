@@ -158,8 +158,8 @@ const EXCHANGE_MAP: Record<string, Stock['market']> = {
   KOE: 'KOSDAQ', // KOSDAQ
 };
 
-// Naver 모바일에서 US 종목 한글명 조회
-export async function fetchKoreanName(ticker: string): Promise<string | null> {
+// Naver 모바일에서 US 종목 한글명 조회 (searchYahooFinance 내부 전용)
+async function fetchKoreanName(ticker: string): Promise<string | null> {
   try {
     const res = await fetch(proxy(`https://m.stock.naver.com/api/search/all?keyword=${encodeURIComponent(ticker)}`));
     if (!res.ok) return null;

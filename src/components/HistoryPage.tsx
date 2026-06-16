@@ -9,7 +9,7 @@ import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
 import { fetchSpxHistory, fetchKospiHistory, getIndexPrice } from '../utils/spxData';
 
-type Period = 'day' | 'month' | 'year';
+type Period = 'day' | 'week' | 'month' | 'year';
 
 const FIXED_HOLIDAYS: Record<string, string> = {
   '01-01': '신정',
@@ -77,10 +77,21 @@ interface Props {
   usdToKrw: number;
 }
 
-function aggregateByPeriod(snapshots: DailySnapshot[], period: 'month' | 'year'): DailySnapshot[] {
+function weekMondayOf(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return mon.toISOString().split('T')[0];
+}
+
+function aggregateByPeriod(snapshots: DailySnapshot[], period: 'week' | 'month' | 'year'): DailySnapshot[] {
   const map = new Map<string, DailySnapshot>();
   for (const snap of snapshots) {
-    const key = period === 'month' ? snap.date.slice(0, 7) : snap.date.slice(0, 4);
+    const key = period === 'week' ? weekMondayOf(snap.date)
+              : period === 'month' ? snap.date.slice(0, 7)
+              : snap.date.slice(0, 4);
     map.set(key, snap);
   }
   return Array.from(map.values());
@@ -91,6 +102,11 @@ function dateLabel(date: string, period: Period): string {
   if (period === 'month') {
     const [y, m] = date.split('-');
     return `${y}년 ${parseInt(m)}월`;
+  }
+  if (period === 'week') {
+    const mon = weekMondayOf(date);
+    const [, m, d] = mon.split('-');
+    return `${parseInt(m)}/${parseInt(d)}주`;
   }
   const [, m, d] = date.split('-');
   return `${parseInt(m)}/${parseInt(d)}`;
@@ -219,7 +235,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
     }));
   }, [displaySnapshots, chartAccountIds, period, selectedAccountId]);
 
-  const periodLabel = { day: '전일', month: '전월', year: '전년' }[period];
+  const periodLabel = { day: '전일', week: '전주', month: '전월', year: '전년' }[period];
 
   // 벤치마크: 정규화된 수익률 % (첫 스냅샷 기준)
   const benchmarkChartData = useMemo(() => {
@@ -307,7 +323,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
             벤치마크
           </button>
           <div className="flex bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-0.5">
-            {(['day', 'month', 'year'] as Period[]).map(p => (
+            {(['day', 'week', 'month', 'year'] as Period[]).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
@@ -315,7 +331,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   period === p ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {{ day: '일', month: '월', year: '년' }[p]}
+                {{ day: '일', week: '주', month: '월', year: '년' }[p]}
               </button>
             ))}
           </div>

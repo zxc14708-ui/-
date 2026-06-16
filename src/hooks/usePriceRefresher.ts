@@ -31,7 +31,7 @@ export function usePriceRefresher(
       if (data.size > 0) {
         setLastUpdated(new Date());
       } else {
-        setError('CORS 차단 또는 API 응답 없음');
+        setError('시세 조회 실패 — 프록시 및 네트워크 확인 필요');
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '가격 조회 실패');
