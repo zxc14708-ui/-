@@ -89,7 +89,10 @@ async function fetchYahoo(stock: Stock): Promise<{ id: string; price: number; pr
   return null;
 }
 
-export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, LivePrice>> {
+export async function fetchLivePrices(
+  stocks: Stock[],
+  onPartialReady?: (data: Map<string, LivePrice>) => void,
+): Promise<Map<string, LivePrice>> {
   if (!stocks.length) return new Map();
 
   const result = new Map<string, LivePrice>();
@@ -97,13 +100,25 @@ export async function fetchLivePrices(stocks: Stock[]): Promise<Map<string, Live
   const us = stocks.filter(s => s.market === 'NYSE' || s.market === 'NASDAQ');
   const CHUNK = 5;
 
-  // 1) 토스(로컬 프록시)로 시세 배치 조회. 국내·미국을 "시장별로 분리" 호출한다.
-  //    (혼합 배치에서 미국 종목이 누락되는 문제 회피)
-  //    현재가는 묶어서 호출하고 전일종가는 캐싱해 레이트리밋(429)을 피한다.
+  // 가격 먼저 콜백 — ticker→id 변환 후 호출부에 전달 (등락률 미완성일 수 있음)
+  const makeEarlyCallback = (group: Stock[]) =>
+    onPartialReady
+      ? (tickerPrices: Map<string, LivePrice>) => {
+          const partial = new Map<string, LivePrice>();
+          for (const s of group) {
+            const lp = tickerPrices.get(s.ticker);
+            if (lp) partial.set(s.id, lp);
+          }
+          if (partial.size > 0) onPartialReady(partial);
+        }
+      : undefined;
+
+  // 1) 토스(로컬 프록시)로 시세 배치 조회. 국내·미국을 시장별로 분리 호출.
+  //    onPricesReady 콜백으로 가격을 먼저 UI에 넘긴 뒤 캔들(전일종가)을 백그라운드 조회.
   //    프록시가 꺼져 있으면 빈 Map 이 반환돼 전부 폴백으로 넘어간다.
   const tossFailed: Stock[] = [];
-  const krToss = await fetchTossLivePrices(korean.map(s => s.ticker));
-  const usToss = await fetchTossLivePrices(us.map(s => s.ticker));
+  const krToss = await fetchTossLivePrices(korean.map(s => s.ticker), makeEarlyCallback(korean));
+  const usToss = await fetchTossLivePrices(us.map(s => s.ticker), makeEarlyCallback(us));
   for (const s of korean) {
     const lp = krToss.get(s.ticker);
     if (lp) result.set(s.id, lp);

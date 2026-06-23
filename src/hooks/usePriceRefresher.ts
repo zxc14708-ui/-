@@ -25,12 +25,20 @@ export function usePriceRefresher(
     inFlight.current = true;
     setIsRefreshing(true);
     setError(null);
+    let partialFired = false;
     try {
-      const data = await fetchLivePrices(current);
-      onUpdateRef.current(data);
-      if (data.size > 0) {
+      const data = await fetchLivePrices(current, partial => {
+        // 가격 조회 완료 시 즉시 UI 업데이트 (등락률은 캔들 완료 후 갱신)
+        onUpdateRef.current(partial);
         setLastUpdated(new Date());
-      } else {
+        setIsRefreshing(false);
+        partialFired = true;
+      });
+      // 캔들 완료 후 최종 업데이트 (등락률 정확한 값으로 교체)
+      if (data.size > 0) {
+        onUpdateRef.current(data);
+        setLastUpdated(new Date());
+      } else if (!partialFired) {
         setError('시세 조회 실패 — 프록시 및 네트워크 확인 필요');
       }
     } catch (e) {
