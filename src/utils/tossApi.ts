@@ -21,6 +21,7 @@
  */
 
 import type { LivePrice } from './yahooFinance';
+import type { Stock } from '../types';
 
 const LOCAL_PROXY = 'http://localhost:3001/toss';
 
@@ -174,4 +175,48 @@ export async function probeToss(symbol = '005930'): Promise<unknown> {
 
 if (typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).probeToss = probeToss;
+}
+
+/**
+ * 티커 직접 조회 (Toss) — Yahoo/Naver 검색에 없는 종목 추가 시 사용.
+ * /stocks 로 종목명, /prices 로 통화·심볼을 가져온다.
+ * 프록시 꺼져 있거나 종목 없으면 null 반환.
+ */
+export async function searchTossTicker(
+  ticker: string,
+): Promise<Pick<Stock, 'ticker' | 'nameKo' | 'nameEn' | 'market' | 'currency'> | null> {
+  const sym = ticker.trim().toUpperCase();
+  try {
+    const [nameRes, priceRes] = await Promise.allSettled([
+      tossFetch<{ result?: Array<{ name?: string }> }>(
+        `/api/v1/stocks?symbols=${encodeURIComponent(sym)}`, 2000
+      ),
+      tossFetch<{ result?: Array<{ symbol?: string; lastPrice?: string | number; currency?: string }> }>(
+        `/api/v1/prices?symbols=${encodeURIComponent(sym)}`, 2000
+      ),
+    ]);
+
+    const name = nameRes.status === 'fulfilled'
+      ? (nameRes.value?.result?.[0]?.name?.trim() || null)
+      : null;
+    const priceItem = priceRes.status === 'fulfilled'
+      ? (priceRes.value?.result?.[0] ?? null)
+      : null;
+
+    if (!name && !priceItem) return null;
+
+    const currency: Stock['currency'] = priceItem?.currency === 'USD' ? 'USD' : 'KRW';
+    const market: Stock['market'] = currency === 'KRW' ? 'KRX' : 'NYSE';
+    const displayName = name ?? priceItem?.symbol ?? sym;
+
+    return {
+      ticker: priceItem?.symbol ?? sym,
+      nameKo: displayName,
+      nameEn: displayName,
+      market,
+      currency,
+    };
+  } catch {
+    return null;
+  }
 }

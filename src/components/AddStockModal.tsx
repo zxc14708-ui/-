@@ -3,6 +3,7 @@ import { X, Search, ChevronDown, Loader2 } from 'lucide-react';
 import type { Stock, Account } from '../types';
 import { searchStocks } from '../data/stockDB';
 import { searchYahooFinance, searchNaverFinance, isKoreanQuery, type StockEntry } from '../utils/yahooFinance';
+import { searchTossTicker } from '../utils/tossApi';
 
 interface Props {
   accounts: Account[];
@@ -13,8 +14,10 @@ interface Props {
 }
 
 export function AddStockModal({ accounts, defaultAccountId, usdToKrw, onAdd, onClose }: Props) {
+  type Suggestion = StockEntry & { fromToss?: true };
+
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<StockEntry[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selected, setSelected] = useState<StockEntry | null>(null);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
@@ -101,12 +104,21 @@ export function AddStockModal({ accounts, defaultAccountId, usdToKrw, onAdd, onC
     setIsLiveSearching(true);
     liveSearchTimer.current = setTimeout(async () => {
       try {
-        const liveResults = isKoreanQuery(v)
+        const liveResults: StockEntry[] = isKoreanQuery(v)
           ? await searchNaverFinance(v).then(r => r.length > 0 ? r : searchYahooFinance(v))
           : await searchYahooFinance(v);
+
         const localTickers = new Set(localResults.map(r => r.ticker.toLowerCase()));
         const extras = liveResults.filter(r => !localTickers.has(r.ticker.toLowerCase()));
-        setSuggestions([...localResults, ...extras].slice(0, 15));
+        const combined: Suggestion[] = [...localResults, ...extras];
+
+        // 로컬 + Yahoo/Naver 모두 결과 없고 티커처럼 생긴 쿼리이면 Toss 직접 조회
+        if (combined.length === 0 && /^[A-Za-z0-9]{2,10}$/.test(v.trim())) {
+          const tossResult = await searchTossTicker(v.trim());
+          if (tossResult) combined.push({ ...tossResult, fromToss: true });
+        }
+
+        setSuggestions(combined.slice(0, 15));
       } finally {
         setIsLiveSearching(false);
       }
@@ -212,6 +224,9 @@ export function AddStockModal({ accounts, defaultAccountId, usdToKrw, onAdd, onC
                         <div className="flex items-center gap-2">
                           <span className="text-white text-sm font-medium">{item.nameKo}</span>
                           <span className="text-gray-500 text-xs font-mono">{item.ticker}</span>
+                          {item.fromToss && (
+                            <span className="text-xs px-1 py-0.5 rounded bg-indigo-900/50 text-indigo-400 font-medium">토스</span>
+                          )}
                         </div>
                         <div className="text-gray-600 text-xs">{item.nameEn} · {item.market}</div>
                       </div>
@@ -228,8 +243,8 @@ export function AddStockModal({ accounts, defaultAccountId, usdToKrw, onAdd, onC
               {showSuggestions && query && suggestions.length === 0 && (
                 <div className="absolute top-full mt-1 w-full bg-[#0f1117] border border-[#2e3151] rounded-xl shadow-2xl z-50 px-4 py-3 text-gray-500 text-sm flex items-center gap-2">
                   {isLiveSearching
-                    ? <><Loader2 size={13} className="animate-spin text-blue-400" />검색 중...</>
-                    : '검색 결과가 없습니다'}
+                    ? <><Loader2 size={13} className="animate-spin text-blue-400" />검색 중 (토스 직접 조회 포함)...</>
+                    : '검색 결과가 없습니다 (프록시 실행 시 티커로 토스 직접 조회)'}
                 </div>
               )}
             </div>
