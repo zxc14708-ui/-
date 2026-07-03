@@ -247,6 +247,10 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
   const lastSnap = snapshots[snapshots.length - 1];
   const firstSnap = snapshots[0];
 
+  // 개별 계좌 '대비' 기준 — 일 단위는 선택한 달의 첫 기록(월초), 그 외는 전체 첫 기록
+  const compareBaseSnap = period === 'day' ? displaySnapshots[0] : firstSnap;
+  const compareBaseLabel = period === 'day' ? '월초 대비' : '첫 기록 대비';
+
   function getSnapVal(snap: DailySnapshot, accountId: string | null): number {
     if (accountId === null) return snap.totalValueKrw;
     return snap.accounts.find(a => a.id === accountId)?.valueKrw ?? 0;
@@ -763,7 +767,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   <th className="text-left px-4 py-3 text-gray-500 font-normal text-xs">날짜</th>
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">평가금액</th>
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">{periodLabel}대비</th>
-                  <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">첫 기록 대비</th>
+                  <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">{compareBaseLabel}</th>
                 </tr>
               </thead>
               <tbody>
@@ -774,7 +778,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   const diff = prevVal !== null ? val - prevVal : null;
                   const diffPct = diff !== null && prevVal !== null && prevVal !== 0 ? (diff / prevVal) * 100 : null;
 
-                  const baseVal = firstSnap?.accounts.find(a => a.id === selectedAccountId)?.valueKrw ?? null;
+                  const baseVal = compareBaseSnap?.accounts.find(a => a.id === selectedAccountId)?.valueKrw ?? null;
                   const sinceFirst = baseVal !== null ? val - baseVal : null;
                   const sinceFirstPct = sinceFirst !== null && baseVal !== null && baseVal !== 0 ? (sinceFirst / baseVal) * 100 : null;
 
