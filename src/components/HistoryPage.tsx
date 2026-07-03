@@ -3,7 +3,7 @@ import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { Camera, TrendingUp, Loader2 } from 'lucide-react';
+import { Camera, TrendingUp, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { DailySnapshot, Account } from '../types';
 import type { DisplayCurrency } from '../utils/currency';
 import { fmtAmountFull } from '../utils/currency';
@@ -153,6 +153,8 @@ function diffCellBg(pct: number | null): React.CSSProperties | undefined {
 
 export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurrency, usdToKrw }: Props) {
   const [period, setPeriod] = useState<Period>('day');
+  // 일 단위 뷰에서 보여줄 월 ('YYYY-MM'). null = 가장 최근 데이터가 있는 달
+  const [dayMonth, setDayMonth] = useState<string | null>(null);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [savedMsg, setSavedMsg] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -207,10 +209,25 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
     return map;
   }, [snapshots, accounts]);
 
-  const displaySnapshots = useMemo(
-    () => (period === 'day' ? snapshots : aggregateByPeriod(snapshots, period)),
-    [snapshots, period],
-  );
+  // 데이터가 있는 달 목록 (오름차순 'YYYY-MM')
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of snapshots) set.add(s.date.slice(0, 7));
+    return Array.from(set).sort();
+  }, [snapshots]);
+
+  // 선택한 달이 없거나 데이터에서 사라졌으면 가장 최근 달로
+  const latestMonth = availableMonths[availableMonths.length - 1] ?? null;
+  const effectiveDayMonth =
+    dayMonth && availableMonths.includes(dayMonth) ? dayMonth : latestMonth;
+  const monthIdx = effectiveDayMonth ? availableMonths.indexOf(effectiveDayMonth) : -1;
+
+  // 일 단위: 선택한 달의 스냅샷만 표시 (데이터가 늘어나도 차트·테이블 과밀 방지)
+  const displaySnapshots = useMemo(() => {
+    if (period !== 'day') return aggregateByPeriod(snapshots, period);
+    if (!effectiveDayMonth) return snapshots;
+    return snapshots.filter(s => s.date.startsWith(effectiveDayMonth));
+  }, [snapshots, period, effectiveDayMonth]);
 
   const chartAccountIds = useMemo(() => {
     const ids = new Set<string>();
@@ -364,6 +381,41 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
               </button>
             ))}
           </div>
+          {/* 일 단위: 월 선택 네비게이터 — 선택한 달만 차트·테이블에 표시 */}
+          {period === 'day' && effectiveDayMonth && (
+            <div className="flex items-center bg-[#1a1d2e] border border-[#2e3151] rounded-xl p-0.5">
+              <button
+                onClick={() => setDayMonth(availableMonths[monthIdx - 1])}
+                disabled={monthIdx <= 0}
+                className="px-1.5 py-1.5 text-gray-400 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                title="이전 달"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <select
+                value={effectiveDayMonth}
+                onChange={e => setDayMonth(e.target.value)}
+                className="bg-transparent text-white text-xs font-medium outline-none cursor-pointer px-1 py-1.5 appearance-none text-center"
+              >
+                {availableMonths.map(m => {
+                  const [y, mo] = m.split('-');
+                  return (
+                    <option key={m} value={m} className="bg-[#1a1d2e]">
+                      {y}년 {parseInt(mo)}월
+                    </option>
+                  );
+                })}
+              </select>
+              <button
+                onClick={() => setDayMonth(availableMonths[monthIdx + 1])}
+                disabled={monthIdx < 0 || monthIdx >= availableMonths.length - 1}
+                className="px-1.5 py-1.5 text-gray-400 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                title="다음 달"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
           <button
             onClick={handleSave}
             className={`flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1d2e] border rounded-lg text-xs transition-colors ${
