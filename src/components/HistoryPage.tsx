@@ -393,18 +393,32 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                 <ChevronLeft size={14} />
               </button>
               <select
+                value={effectiveDayMonth.slice(0, 4)}
+                onChange={e => {
+                  // 연도 변경: 같은 월이 그 해에 있으면 유지, 없으면 그 해의 마지막 달로
+                  const y = e.target.value;
+                  const inYear = availableMonths.filter(m => m.startsWith(`${y}-`));
+                  const sameMonth = `${y}-${effectiveDayMonth.slice(5)}`;
+                  setDayMonth(inYear.includes(sameMonth) ? sameMonth : inYear[inYear.length - 1]);
+                }}
+                className="bg-transparent text-white text-xs font-medium outline-none cursor-pointer px-1 py-1.5 appearance-none text-center"
+              >
+                {Array.from(new Set(availableMonths.map(m => m.slice(0, 4)))).map(y => (
+                  <option key={y} value={y} className="bg-[#1a1d2e]">{y}년</option>
+                ))}
+              </select>
+              <select
                 value={effectiveDayMonth}
                 onChange={e => setDayMonth(e.target.value)}
                 className="bg-transparent text-white text-xs font-medium outline-none cursor-pointer px-1 py-1.5 appearance-none text-center"
               >
-                {availableMonths.map(m => {
-                  const [y, mo] = m.split('-');
-                  return (
+                {availableMonths
+                  .filter(m => m.startsWith(effectiveDayMonth.slice(0, 4)))
+                  .map(m => (
                     <option key={m} value={m} className="bg-[#1a1d2e]">
-                      {y}년 {parseInt(mo)}월
+                      {parseInt(m.slice(5))}월
                     </option>
-                  );
-                })}
+                  ))}
               </select>
               <button
                 onClick={() => setDayMonth(availableMonths[monthIdx + 1])}
