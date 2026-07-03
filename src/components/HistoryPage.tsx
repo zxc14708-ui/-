@@ -247,8 +247,10 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
   const lastSnap = snapshots[snapshots.length - 1];
   const firstSnap = snapshots[0];
 
-  // 개별 계좌 '대비' 기준 — 일 단위는 선택한 달의 첫 기록(월초), 그 외는 전체 첫 기록
-  const compareBaseSnap = period === 'day' ? displaySnapshots[0] : firstSnap;
+  // '대비' 기준 — 항상 현재 뷰에 표시된 첫 행.
+  // 일 단위: 선택한 달의 첫 기록(월초) / 주·월·년: 집계된 첫 기간의 값
+  // (전체 기간의 일별 첫 스냅샷을 쓰면 기준값이 테이블에 안 보여 계산이 안 맞아 보임)
+  const compareBaseSnap = displaySnapshots[0];
   const compareBaseLabel = period === 'day' ? '월초 대비' : '첫 기록 대비';
 
   function getSnapVal(snap: DailySnapshot, accountId: string | null): number {
