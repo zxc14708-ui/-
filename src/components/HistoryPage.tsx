@@ -134,6 +134,23 @@ function pctStr(v: number | null) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
 }
 
+/**
+ * 등락 크기별 셀 배경 — 좌→우 그라데이션.
+ *   |pct| < 1%  : 배경 없음
+ *   1% ~ 5%    : 연하게
+ *   5% ~ 10%   : 진하게
+ *   10% 이상   : 더 진하게
+ * +는 초록(emerald), -는 붉은색(red).
+ */
+function diffCellBg(pct: number | null): React.CSSProperties | undefined {
+  if (pct === null) return undefined;
+  const a = Math.abs(pct);
+  if (a < 1) return undefined;
+  const alpha = a >= 10 ? 0.5 : a >= 5 ? 0.3 : 0.15;
+  const rgb = pct >= 0 ? '16,185,129' : '239,68,68';
+  return { background: `linear-gradient(90deg, transparent 0%, rgba(${rgb},${alpha}) 100%)` };
+}
+
 export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurrency, usdToKrw }: Props) {
   const [period, setPeriod] = useState<Period>('day');
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -657,7 +674,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                       <td className="px-4 py-2.5 text-right text-white text-xs tabular-nums font-medium">
                         {fmt(snap.totalValueKrw)}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      <td className="px-4 py-2.5 text-right text-xs tabular-nums" style={diffCellBg(diffPct)}>
                         {diff !== null && diffPct !== null ? (
                           <div className={pctColor(diff)}>
                             <div>{diff >= 0 ? '+' : ''}{fmt(diff)}</div>
@@ -708,7 +725,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                       <td className="px-4 py-2.5 text-right text-white text-xs tabular-nums font-medium">
                         {fmt(val)}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      <td className="px-4 py-2.5 text-right text-xs tabular-nums" style={diffCellBg(diffPct)}>
                         {diff !== null && diffPct !== null ? (
                           <div className={pctColor(diff)}>
                             <div>{diff >= 0 ? '+' : ''}{fmt(diff)}</div>
@@ -718,7 +735,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                           <span className="text-gray-600">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      <td className="px-4 py-2.5 text-right text-xs tabular-nums" style={diffCellBg(sinceFirstPct)}>
                         {sinceFirst !== null && sinceFirstPct !== null ? (
                           <div className={pctColor(sinceFirst)}>
                             <div>{sinceFirst >= 0 ? '+' : ''}{fmt(sinceFirst)}</div>
