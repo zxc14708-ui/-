@@ -713,6 +713,7 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   ))}
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs">합계</th>
                   <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">{periodLabel}대비</th>
+                  <th className="text-right px-4 py-3 text-gray-500 font-normal text-xs whitespace-nowrap">{compareBaseLabel}</th>
                 </tr>
               </thead>
               <tbody>
@@ -722,6 +723,12 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                   const diffPct =
                     diff !== null && prev!.totalValueKrw !== 0
                       ? (diff / prev!.totalValueKrw) * 100
+                      : null;
+                  const baseTotal = compareBaseSnap?.totalValueKrw ?? null;
+                  const sinceBase = baseTotal !== null ? snap.totalValueKrw - baseTotal : null;
+                  const sinceBasePct =
+                    sinceBase !== null && baseTotal !== null && baseTotal !== 0
+                      ? (sinceBase / baseTotal) * 100
                       : null;
                   return (
                     <tr
@@ -749,6 +756,16 @@ export function HistoryPage({ snapshots, accounts, onTakeSnapshot, displayCurren
                           <div className={pctColor(diff)}>
                             <div>{diff >= 0 ? '+' : ''}{fmt(diff)}</div>
                             <div className="opacity-70">{pctStr(diffPct)}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs tabular-nums" style={diffCellBg(sinceBasePct)}>
+                        {sinceBase !== null && sinceBasePct !== null ? (
+                          <div className={pctColor(sinceBase)}>
+                            <div>{sinceBase >= 0 ? '+' : ''}{fmt(sinceBase)}</div>
+                            <div className="opacity-70">{pctStr(sinceBasePct)}</div>
                           </div>
                         ) : (
                           <span className="text-gray-600">—</span>
