@@ -6,10 +6,15 @@
  *   2) 토스증권 Open API OAuth2 토큰 발급/캐싱 + 인증 프록시      (?toss=/api/...)
  *      - GET(읽기) 전용 → 이 경로로는 주문 실행 불가
  *      - 자격증명은 Worker secret(env)에서만 읽음
+ *   3) 기기 간 동기화 저장소 (?action=sync&key=<sha256>)
+ *      - PUT: 암호문 저장 / GET: 암호문 조회 (KV namespace 바인딩 필요)
  *
  * 필요한 Worker secret (Cloudflare Dashboard → Worker → Settings → Variables):
  *   TOSS_CLIENT_ID      (Encrypt)
  *   TOSS_CLIENT_SECRET  (Encrypt)
+ *
+ * 필요한 KV 바인딩 (Settings → Bindings → KV namespace):
+ *   SYNC_KV  (다른 이름으로 이미 바인딩돼 있으면 아래 getSyncKV 후보 목록에 포함되면 자동 인식)
  *
  * 배포 방법:
  *   Cloudflare Dashboard → Workers & Pages → my-stock-proxy → Edit code
@@ -193,9 +198,61 @@ function addCrumb(url, crumb) {
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
     'Access-Control-Allow-Headers': '*',
   };
+}
+
+// ---------------------------------------------------------------------------
+// 기기 간 동기화 (?action=sync&key=<sha256 hex>)
+//   - 클라이언트가 AES-256-GCM으로 암호화한 blob 을 KV 에 저장/조회만 한다.
+//   - 서버(Worker)는 비밀번호를 모르므로 내용 해독 불가.
+// ---------------------------------------------------------------------------
+
+function getSyncKV(env) {
+  // 기존 배포에서 쓰던 바인딩 이름이 다를 수 있어 흔한 후보를 순서대로 탐색
+  const candidates = ['SYNC_KV', 'KV', 'PORTFOLIO_KV', 'STOCK_KV', 'SYNC', 'DATA'];
+  for (const name of candidates) {
+    const kv = env && env[name];
+    if (kv && typeof kv.get === 'function' && typeof kv.put === 'function') return kv;
+  }
+  return null;
+}
+
+async function handleSync(request, reqUrl, env) {
+  const key = reqUrl.searchParams.get('key') || '';
+  // hashUserId(sha256) 결과인 64자리 hex 만 허용 — KV 키 오염 방지
+  if (!/^[a-f0-9]{64}$/i.test(key)) {
+    return jsonResponse({ error: 'invalid key' }, 400);
+  }
+  const kv = getSyncKV(env);
+  if (!kv) {
+    return jsonResponse(
+      { error: 'KV 바인딩 없음 — Worker Settings → Bindings 에서 KV namespace 를 SYNC_KV 이름으로 연결하세요' },
+      500,
+    );
+  }
+
+  if (request.method === 'GET') {
+    const data = await kv.get(key);
+    if (data === null) return jsonResponse({ error: 'not found' }, 404);
+    return new Response(data, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain', ...corsHeaders() },
+    });
+  }
+
+  if (request.method === 'PUT') {
+    const body = await request.text();
+    // 암호화 blob 크기 상한 5MB — 비정상 요청 차단
+    if (!body || body.length > 5_000_000) {
+      return jsonResponse({ error: 'invalid body' }, 400);
+    }
+    await kv.put(key, body);
+    return jsonResponse({ ok: true });
+  }
+
+  return jsonResponse({ error: 'method not allowed' }, 405);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +267,11 @@ export default {
     }
 
     const reqUrl = new URL(request.url);
+
+    // 기기 간 동기화: ?action=sync&key=<sha256>  (GET=조회 / PUT=저장)
+    if (reqUrl.searchParams.get('action') === 'sync') {
+      return handleSync(request, reqUrl, env);
+    }
 
     // 토스증권 Open API 경로: ?toss=/api/v1/stocks?symbols=005930  (GET 전용)
     const tossPath = reqUrl.searchParams.get('toss');
