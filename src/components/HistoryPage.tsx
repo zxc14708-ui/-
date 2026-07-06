@@ -136,17 +136,14 @@ function pctStr(v: number | null) {
 
 /**
  * 등락 크기별 셀 배경 — 좌→우 그라데이션.
- *   |pct| < 1%  : 배경 없음
- *   1% ~ 5%    : 연하게
- *   5% ~ 10%   : 진하게
- *   10% 이상   : 더 진하게
- * +는 초록(emerald), -는 붉은색(red).
+ * |pct| < 1% 는 배경 없음, 1%부터 등락 크기에 비례해 연속적으로 진해진다
+ * (1% ≈ 0.08 → 10% 이상 0.6 상한). +는 초록(emerald), -는 붉은색(red).
  */
 function diffCellBg(pct: number | null): React.CSSProperties | undefined {
   if (pct === null) return undefined;
   const a = Math.abs(pct);
   if (a < 1) return undefined;
-  const alpha = a >= 10 ? 0.5 : a >= 5 ? 0.3 : 0.15;
+  const alpha = Math.min(0.08 + (a - 1) * 0.058, 0.6);
   const rgb = pct >= 0 ? '16,185,129' : '239,68,68';
   return { background: `linear-gradient(90deg, transparent 0%, rgba(${rgb},${alpha}) 100%)` };
 }
