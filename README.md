@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+# ARAD: Gunblade — 던전앤파이터 팬 게임
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+던전앤파이터의 **총검사(Gunblade)**를 주인공으로 한 3D 탑다운 로그라이크 핵앤슬래시 팬 게임입니다.
+Three.js로 제작되었으며, 브라우저에서 바로 플레이할 수 있습니다.
 
-Currently, two official plugins are available:
+> ⚠️ 본 프로젝트는 비영리 **팬 게임**입니다. Dungeon &amp; Fighter는 NEOPLE/NEXON의 지적 재산입니다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🎮 게임 소개
 
-## React Compiler
+리볼버와 카타나를 함께 다루는 총검사가 되어, 밀려오는 마족의 물결을 헤쳐 나갑니다.
+적을 처치해 경험치를 모으고, 레벨업마다 능력을 강화하며 점점 더 강해지는 웨이브에 맞서세요.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **3D 탑다운 뷰** — 아라드 던전 아레나 위에서 벌어지는 실시간 전투
+- **총검 이중 무기** — 좌클릭 리볼버 연사 + 우클릭 카타나 광역 베기
+- **로그라이크 성장** — 레벨업마다 3개 중 1개 능력 강화 (희귀도: Common / Rare / Epic)
+- **웨이브 생존** — 5웨이브마다 거대 보스 등장
+- **다양한 적** — 임프(근접) · 슈터(원거리) · 브루트(탱커) · 보스
 
-## Expanding the ESLint configuration
+## ⌨️ 조작법
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| 키 | 동작 |
+| --- | --- |
+| `W` `A` `S` `D` | 이동 |
+| `마우스` | 조준 |
+| `좌클릭` (홀드) | 리볼버 연사 |
+| `우클릭` / `Space` | 카타나 베기 (광역 + 넉백) |
+| `Shift` | 대시 회피 (짧은 무적) |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🕹️ 실행 방법
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # 개발 서버 (http://localhost:5173)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+프로덕션 빌드:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build    # dist/ 생성
+npm run preview  # 빌드 결과 미리보기
 ```
+
+## 🧩 캐릭터 디자인
+
+주인공은 첨부된 던파 총검사 원화를 참조했습니다 — 은발, 안경, 흰 롱코트,
+녹색 조끼, 붉은 도신의 카타나, 리볼버. 프리미티브 지오메트리를 조합해
+스타일라이즈드 3D 모델로 표현했습니다.
+
+## 📁 프로젝트 구조
+
+```
+src/
+├── main.ts              # 진입점
+├── config.ts            # 게임 밸런스 / 색상 팔레트
+├── core/
+│   ├── Game.ts          # 게임 루프 · 상태 · 충돌 처리 (오케스트레이터)
+│   └── Input.ts         # 키보드 / 마우스 입력
+├── entities/
+│   ├── Player.ts        # 총검사 플레이어 (이동·조준·전투·성장)
+│   ├── Enemy.ts         # 적 AI (임프·슈터·브루트·보스)
+│   └── models.ts        # 3D 캐릭터/적 메시 빌더
+├── systems/
+│   ├── Dungeon.ts       # 원형 던전 아레나 생성
+│   ├── Spawner.ts       # 웨이브 스폰
+│   ├── Projectiles.ts   # 총알 / 적 투사체
+│   ├── Orbs.ts          # 경험치 오브
+│   ├── Effects.ts       # 파티클·베기 궤적·데미지 숫자
+│   └── Upgrades.ts      # 로그라이크 업그레이드 풀
+└── ui/
+    └── HUD.ts           # HP/XP·웨이브·레벨업·게임오버 UI
+```
+
+## 🛠️ 기술 스택
+
+- [Three.js](https://threejs.org/) — 3D 렌더링
+- TypeScript + Vite
