@@ -50,8 +50,10 @@ position and run state. Keep it.
 - Floors are tiled textures. Keep them small and low-contrast — a busy floor
   hides the player and enemies. Do not ship multi-megabyte single images; every
   file in `public/` is downloaded before play.
-- `tools/extract_character_sheet.py` regenerates `public/gunblader.png` from the
-  source illustration.
+- The player character is `public/assets/player/gunblade_*.png` — five
+  independent state sheets (idle/walk/dash/katana/pistol), all 64x64 square
+  cells. `src/entities/CharacterSprite.ts` swaps between them; it has no
+  per-weapon visual skins.
 
 ## Gameplay Architecture
 
