@@ -1,9 +1,10 @@
 import * as THREE from 'three'
 import { noOutline } from '../rendering/toon'
-import { dungeonFloorTex, dungeonWallTex, townFloorTex, townWallTex, bossFloorTex } from '../rendering/tiles'
-import { ASSET, cloneTex } from '../rendering/assets'
+import { dungeonWallTex, townFloorTex, townWallTex } from '../rendering/tiles'
+import { ASSET, cloneTex, loadTex } from '../rendering/assets'
+import type { Direction } from './RunState'
 
-const TORCH_FRAMES = 2
+const TORCH_FRAMES = 3
 
 export type RoomVisualKind = 'dungeon' | 'boss' | 'town'
 
@@ -46,14 +47,17 @@ export class Room {
     // 플레이 가능 영역(벽 두께 제외)
     this.bounds = { minX: -halfW, maxX: halfW, minZ: -halfD, maxZ: halfD }
 
-    const floorTex = visual === 'town' ? townFloorTex() : visual === 'boss' ? bossFloorTex() : dungeonFloorTex()
+    const useForestBackdrop = visual !== 'town'
+    const floorTex = useForestBackdrop ? loadTex(ASSET.stage1.floor) : townFloorTex()
     const wallTex = visual === 'town' ? townWallTex() : dungeonWallTex()
 
     // ── 바닥 ──
     const ft = floorTex.clone()
     ft.needsUpdate = true
-    ft.wrapS = ft.wrapT = THREE.RepeatWrapping
-    ft.repeat.set(this.w / 2, this.d / 2) // 타일 2월드유닛
+    if (!useForestBackdrop) {
+      ft.wrapS = ft.wrapT = THREE.RepeatWrapping
+      ft.repeat.set(this.w / 2, this.d / 2)
+    }
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(this.w, this.d),
       noOutline(new THREE.MeshStandardMaterial({ map: ft, roughness: 1 })),
@@ -68,9 +72,10 @@ export class Room {
     const wt = wallTex.clone()
     wt.needsUpdate = true
     wt.wrapS = wt.wrapT = THREE.RepeatWrapping
-    // 바닥과 같은 2월드유닛 타일 크기로 맞춤 (늘어짐 방지)
     wt.repeat.set(this.w / 2, WH / 2)
-    const wallMat = noOutline(new THREE.MeshStandardMaterial({ map: wt, roughness: 1 }))
+    const wallMat = useForestBackdrop
+      ? noOutline(new THREE.MeshStandardMaterial({ color: 0x1e2a20, roughness: 1 }))
+      : noOutline(new THREE.MeshStandardMaterial({ map: wt, roughness: 1 }))
     const addWall = (cx: number, cz: number, sx: number, sz: number) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(sx, WH, sz), wallMat)
       m.position.set(cx, WH / 2, cz)
@@ -92,9 +97,27 @@ export class Room {
     outer.position.y = -0.08
     this.group.add(outer)
 
+    if (useForestBackdrop) {
+      const addDecor = (path: string, x: number, z: number, w: number, h: number) => {
+        const mat = noOutline(new THREE.MeshBasicMaterial({ map: loadTex(path), transparent: true, depthWrite: false, side: THREE.DoubleSide }))
+        const decor = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat)
+        decor.rotation.x = -Math.PI / 2
+        decor.position.set(x, 0.035, z)
+        this.group.add(decor)
+      }
+      const fg = ASSET.stage1.foreground
+      addDecor(fg.treeA, -halfW + 4, -halfD + 4.2, 4.2, 5.6)
+      addDecor(fg.treeB, halfW - 4, -halfD + 4.2, 4.2, 5.6)
+      addDecor(fg.bushA, -halfW + 3.2, halfD - 2.3, 2.6, 1.75)
+      addDecor(fg.bushB, halfW - 3.2, halfD - 2.3, 2.6, 1.75)
+      addDecor(fg.stoneA, -halfW + 3, -1.4, 1.5, 2)
+      addDecor(fg.stoneB, halfW - 3, 1.4, 1.5, 2)
+      addDecor(fg.vineTop, 0, -halfD + 1.8, 3.6, 1.8)
+    }
+
     // ── 장식: 벽면 횃불 (2프레임 애니메이션) ──
     if (visual !== 'town') {
-      this.torchMap = cloneTex(ASSET.props.torchStrip)
+      this.torchMap = cloneTex(ASSET.stage1.effects.campfire)
       this.torchMap.repeat.set(1 / TORCH_FRAMES, 1)
       const torchMat = noOutline(
         new THREE.SpriteMaterial({ map: this.torchMap, transparent: true, depthWrite: false }),
@@ -104,7 +127,7 @@ export class Room {
         light.position.set(tx, 3.4, -halfD + 0.5)
         this.group.add(light)
         const torch = new THREE.Sprite(torchMat)
-        torch.scale.set(1.5 * (24 / 24), 1.5, 1)
+        torch.scale.set(1.15, 1.7, 1)
         torch.position.set(tx, 2.6, -halfD + 0.5)
         this.group.add(torch)
       }
@@ -134,14 +157,30 @@ export class Room {
   }
 
   /** 플레이어 진입 위치 (남쪽 중앙) */
-  entryPoint() {
-    return { x: 0, z: this.bounds.maxZ - 3 }
+  entryPoint(from: Direction = 'south') {
+    const inset = 3
+    switch (from) {
+      case 'north': return { x: 0, z: this.bounds.minZ + inset }
+      case 'east': return { x: this.bounds.maxX - inset, z: 0 }
+      case 'west': return { x: this.bounds.minX + inset, z: 0 }
+      default: return { x: 0, z: this.bounds.maxZ - inset }
+    }
   }
 
   /** 북쪽 벽 앞 문 위치들 (개수에 따라 균등 배치) */
+  doorPoint(direction: Direction): { x: number; z: number } {
+    const inset = 2.8
+    switch (direction) {
+      case 'north': return { x: 0, z: this.bounds.minZ + inset }
+      case 'east': return { x: this.bounds.maxX - inset, z: 0 }
+      case 'south': return { x: 0, z: this.bounds.maxZ - inset }
+      case 'west': return { x: this.bounds.minX + inset, z: 0 }
+    }
+  }
+
   doorPoints(count: number): { x: number; z: number }[] {
     const z = this.bounds.minZ + 1.2
-    if (count <= 1) return [{ x: 0, z }]
+    if (count <= 1) return [this.doorPoint('north')]
     const span = this.w * 0.5
     return Array.from({ length: count }, (_, i) => ({
       x: -span / 2 + (span / (count - 1)) * i,
