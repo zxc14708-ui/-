@@ -73,6 +73,17 @@ position and run state. Keep it.
 - Interactables must be visually distinguishable from each other. The healing
   fountain and the dungeon portal currently read as the same teal orb.
 
+## Design log
+
+- Any change to gameplay, balance, or system structure adds an entry to the
+  top of `DESIGN_LOG.md`.
+- Do not write numbers there — `config.ts` is the source of truth. Record only
+  intent, abandoned attempts, and open problems.
+- Visual defects spotted by eye in `qc-out` must be logged even if the type
+  check passed.
+- When an open issue is resolved, delete its entry and move it into the
+  changelog section.
+
 ## Housekeeping
 
 - Do not commit `node_modules`, `dist`, `.npm-cache`, or `qc-out`.
