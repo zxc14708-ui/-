@@ -7,6 +7,29 @@
 - This repository is the single source of truth. All work lands here.
 - Do not add external art unless explicitly requested. Existing assets are in `public/assets/`.
 
+## Collaboration roles
+
+Three contributors work this repo; each has one lane and doesn't cross into
+another's without the user's sign-off:
+
+- **Codex** — code implementation. Builds features/fixes against values already
+  set in `config.ts` and decisions already recorded in `DESIGN_LOG.md`. Does not
+  invent balance numbers or system-structure changes on its own — if a task
+  needs a design call that isn't already decided, it proposes options in
+  `DESIGN_LOG.md` under 미해결 이슈 instead of picking one and shipping it.
+- **GPT** — art only. Produces sprite sheets/props per the Asset rules below.
+  Does not touch code.
+- **Claude** — two jobs, not one person double-hatting silently:
+  1. Game design: reads the whole codebase (something Codex/GPT don't share
+     access to) to surface balance/system issues and propose fixes, recorded
+     as entries in `DESIGN_LOG.md`. These are **proposals**, not unilateral
+     decisions — the user approves before Codex implements them.
+  2. Integration + QC: reviews what Codex/GPT push, verifies with `npm run qc`,
+     integrates only the valid parts, and deploys.
+
+`DESIGN_LOG.md` is the shared source of truth for design decisions across all
+three — not just Claude's own scratch notes.
+
 ## Commands
 
 - `npm install` — install dependencies.
